@@ -173,15 +173,67 @@ function ServicesAndContentAdmin() {
     loadAboutSettings();
   }, []);
 
+  const compressImage = async (file: File, maxWidth = 1280, quality = 0.85): Promise<File> => {
+    if (!file.type.startsWith("image/") || file.type.includes("svg")) {
+      return file;
+    }
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(file);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                resolve(file);
+                return;
+              }
+              const compressed = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve(compressed);
+            },
+            "image/jpeg",
+            quality
+          );
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const uploadImage = async (file: File, type: "service" | "about" | "edit") => {
     if (type === "service") setUploadingService(true);
     else if (type === "about") setUploadingAbout(true);
     else setUploadingEdit(true);
 
     try {
-      const ext = file.name.split(".").pop();
+      const fileToUpload = await compressImage(file);
+      const ext = fileToUpload.name.split(".").pop() || "jpg";
       const path = `uploads/${crypto.randomUUID()}.${ext}`;
-      const { error } = await supabase.storage.from("realisations").upload(path, file, { upsert: false });
+      const { error } = await supabase.storage.from("realisations").upload(path, fileToUpload, {
+        contentType: fileToUpload.type || "image/jpeg",
+        upsert: false,
+      });
 
       if (error) throw error;
 
