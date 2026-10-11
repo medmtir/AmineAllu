@@ -1,4 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase as supabaseTyped } from "@/integrations/supabase/client";
+const supabase = supabaseTyped as any;
 import { SiteHeader } from "@/components/site/Header";
 import { SiteFooter } from "@/components/site/Footer";
 import { Button } from "@/components/ui/button";
@@ -40,6 +43,60 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const defaultServices = [
+    { id: "s1", image_url: porte, title: "Portes-fenêtres", description: "Portes-fenêtres aluminium sur mesure, lumineuses et isolantes." },
+    { id: "s2", image_url: fenetre, title: "Fenêtres coulissantes", description: "Coulissantes en aluminium, gain de place et fluidité." },
+    { id: "s3", image_url: veranda, title: "Murs-rideaux & Façades", description: "Façades vitrées pour bâtiments résidentiels et locaux commerciaux." },
+  ];
+
+  const [services, setServices] = useState<any[]>(defaultServices);
+  const [about, setAbout] = useState({
+    about_title: "Un savoir-faire au service de votre habitat",
+    about_text:
+      "Basés à Ouerdanine (Monastir), nous accompagnons particuliers et professionnels dans tous leurs projets de menuiserie aluminium : du simple remplacement d'une fenêtre à la conception complète d'une véranda ou d'une façade vitrée.",
+    about_image_url: "",
+    about_points: [
+      "Profilés haut de gamme",
+      "Découpe et assemblage en atelier",
+      "Pose & finitions soignées",
+      "SAV réactif & garantie",
+    ],
+  });
+
+  useEffect(() => {
+    supabase
+      .from("site_services")
+      .select("*")
+      .eq("visible", true)
+      .order("position", { ascending: true })
+      .then(({ data }: any) => {
+        if (data && data.length > 0) {
+          setServices(data.slice(0, 6));
+        }
+      });
+
+    supabase
+      .from("site_settings")
+      .select("*")
+      .then(({ data }: any) => {
+        if (data && data.length > 0) {
+          const map: any = {};
+          data.forEach((r: any) => {
+            map[r.key] = r.value;
+          });
+          setAbout((prev) => ({
+            ...prev,
+            about_title: map.about_title || prev.about_title,
+            about_text: map.about_text || prev.about_text,
+            about_image_url: map.about_image_url || prev.about_image_url,
+            about_points: map.about_points
+              ? map.about_points.split("\n").filter(Boolean)
+              : prev.about_points,
+          }));
+        }
+      });
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -91,51 +148,61 @@ function Index() {
         </div>
       </section>
 
-      {/* SERVICES */}
+      {/* SERVICES: CE QUE NOUS FABRIQUONS */}
       <section className="container mx-auto px-4 py-12">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-accent">Nos services</div>
+            <div className="text-xs uppercase tracking-widest text-accent font-semibold">Nos services</div>
             <h2 className="mt-2 font-display text-4xl font-bold tracking-tight">Ce que nous fabriquons</h2>
           </div>
           <Button asChild variant="ghost"><Link to="/services">Tout voir <ArrowRight className="ml-1 h-4 w-4" /></Link></Button>
         </div>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
-          {[
-            { img: porte, alt: "Porte-fenêtre aluminium sur mesure", title: "Porte-fenêtre", text: "Portes-fenêtres aluminium sur mesure." },
-            { img: fenetre, alt: "Fenêtre coulissante aluminium", title: "Fenêtre coulissante", text: "Coulissantes en aluminium, gain de place." },
-            { img: veranda, alt: "Mur rideaux aluminium et vitrage", title: "Mur rideaux", text: "Façades vitrées pour bâtiments et commerces." },
-          ].map((s) => (
-            <Card key={s.title} className="group overflow-hidden border-border/60 p-0 shadow-card transition-all hover:shadow-elegant">
-              <div className="aspect-[4/3] overflow-hidden">
-                <img src={s.img} alt={s.alt} loading="lazy" width={1024} height={768}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          {services.map((s) => (
+            <Card key={s.id || s.title} className="group overflow-hidden border-border/60 p-0 shadow-card transition-all hover:shadow-elegant">
+              <div className="aspect-[4/3] overflow-hidden bg-muted">
+                <img
+                  src={s.image_url || s.img}
+                  alt={`${s.title} aluminium sur mesure`}
+                  loading="lazy"
+                  width={1024}
+                  height={768}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
               </div>
               <div className="p-6">
                 <h2 className="font-display text-lg font-semibold">{s.title}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">{s.text}</p>
+                <p className="mt-1 text-sm text-muted-foreground leading-relaxed line-clamp-3">{s.description || s.text}</p>
               </div>
             </Card>
           ))}
         </div>
       </section>
 
-      {/* ABOUT */}
+      {/* ABOUT / À PROPOS */}
       <section className="container mx-auto grid items-center gap-10 px-4 py-20 md:grid-cols-2">
-        <div className="overflow-hidden rounded-xl shadow-elegant">
-          <img src={atelier} alt="Notre atelier" loading="lazy" width={1200} height={800} className="h-full w-full object-cover" />
+        <div className="overflow-hidden rounded-xl shadow-elegant aspect-[4/3] bg-muted">
+          <img
+            src={about.about_image_url || atelier}
+            alt="Notre atelier menuiserie aluminium"
+            loading="lazy"
+            width={1200}
+            height={800}
+            className="h-full w-full object-cover"
+          />
         </div>
         <div>
-          <div className="text-xs uppercase tracking-widest text-accent">À propos</div>
-          <h2 className="mt-2 font-display text-4xl font-bold tracking-tight">Un savoir-faire au service de votre habitat</h2>
-          <p className="mt-4 text-muted-foreground">
-            Basés à Ouerdanine (Monastir), nous accompagnons particuliers et professionnels
-            dans tous leurs projets de menuiserie aluminium : du simple remplacement
-            d'une fenêtre à la conception complète d'une véranda ou d'une façade vitrée.
+          <div className="text-xs uppercase tracking-widest text-accent font-semibold">À propos</div>
+          <h2 className="mt-2 font-display text-4xl font-bold tracking-tight">{about.about_title}</h2>
+          <p className="mt-4 text-muted-foreground leading-relaxed whitespace-pre-line">
+            {about.about_text}
           </p>
           <ul className="mt-6 space-y-2 text-sm">
-            {["Profilés haut de gamme", "Découpe et soudure en atelier", "Pose & finitions soignées", "SAV réactif"].map((x) => (
-              <li key={x} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-accent" />{x}</li>
+            {about.about_points.map((x, idx) => (
+              <li key={idx} className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-accent shrink-0" />
+                <span>{x}</span>
+              </li>
             ))}
           </ul>
           <Button asChild className="mt-8"><Link to="/contact">Parlons de votre projet</Link></Button>

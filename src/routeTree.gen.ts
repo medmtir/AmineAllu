@@ -22,6 +22,7 @@ import { Route as AdminDemandesRouteImport } from './routes/admin.demandes'
 import { Route as AdminDevisRouteImport } from './routes/admin.devis'
 import { Route as AdminFacturesRouteImport } from './routes/admin.factures'
 import { Route as AdminRealisationsRouteImport } from './routes/admin.realisations'
+import { Route as AdminServicesRouteImport } from './routes/admin.services'
 import { Route as AdminDevisIdRouteImport } from './routes/admin.devis.$id'
 import { Route as AdminFacturesIdRouteImport } from './routes/admin.factures.$id'
 
@@ -90,6 +91,11 @@ const AdminRealisationsRoute = AdminRealisationsRouteImport.update({
   path: '/realisations',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminServicesRoute = AdminServicesRouteImport.update({
+  id: '/services',
+  path: '/services',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDevisIdRoute = AdminDevisIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/admin/devis': typeof AdminDevisRouteWithChildren
   '/admin/factures': typeof AdminFacturesRouteWithChildren
   '/admin/realisations': typeof AdminRealisationsRoute
+  '/admin/services': typeof AdminServicesRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/devis/$id': typeof AdminDevisIdRoute
   '/admin/factures/$id': typeof AdminFacturesIdRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/admin/devis': typeof AdminDevisRouteWithChildren
   '/admin/factures': typeof AdminFacturesRouteWithChildren
   '/admin/realisations': typeof AdminRealisationsRoute
+  '/admin/services': typeof AdminServicesRoute
   '/admin': typeof AdminIndexRoute
   '/admin/devis/$id': typeof AdminDevisIdRoute
   '/admin/factures/$id': typeof AdminFacturesIdRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/admin/devis': typeof AdminDevisRouteWithChildren
   '/admin/factures': typeof AdminFacturesRouteWithChildren
   '/admin/realisations': typeof AdminRealisationsRoute
+  '/admin/services': typeof AdminServicesRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/devis/$id': typeof AdminDevisIdRoute
   '/admin/factures/$id': typeof AdminFacturesIdRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/admin/devis'
     | '/admin/factures'
     | '/admin/realisations'
+    | '/admin/services'
     | '/admin/'
     | '/admin/devis/$id'
     | '/admin/factures/$id'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/admin/devis'
     | '/admin/factures'
     | '/admin/realisations'
+    | '/admin/services'
     | '/admin'
     | '/admin/devis/$id'
     | '/admin/factures/$id'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/admin/devis'
     | '/admin/factures'
     | '/admin/realisations'
+    | '/admin/services'
     | '/admin/'
     | '/admin/devis/$id'
     | '/admin/factures/$id'
@@ -308,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRealisationsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/services': {
+      id: '/admin/services'
+      path: '/services'
+      fullPath: '/admin/services'
+      preLoaderRoute: typeof AdminServicesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/devis/$id': {
       id: '/admin/devis/$id'
       path: '/$id'
@@ -355,6 +374,7 @@ interface AdminRouteChildren {
   AdminDevisRoute: typeof AdminDevisRouteWithChildren
   AdminFacturesRoute: typeof AdminFacturesRouteWithChildren
   AdminRealisationsRoute: typeof AdminRealisationsRoute
+  AdminServicesRoute: typeof AdminServicesRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -364,6 +384,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDevisRoute: AdminDevisRouteWithChildren,
   AdminFacturesRoute: AdminFacturesRouteWithChildren,
   AdminRealisationsRoute: AdminRealisationsRoute,
+  AdminServicesRoute: AdminServicesRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 

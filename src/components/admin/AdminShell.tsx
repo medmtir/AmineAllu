@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, Users, FileText, Receipt, Inbox, LogOut, Home, Image, Menu } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Receipt, Inbox, LogOut, Home, Image, Menu, Wrench } from "lucide-react";
 import { COMPANY } from "@/lib/format";
 import { Logo } from "@/components/Logo";
 
@@ -31,6 +31,7 @@ export function AdminShell() {
     { to: "/admin/clients", label: "Clients", icon: Users },
     { to: "/admin/devis", label: "Devis", icon: FileText },
     { to: "/admin/factures", label: "Factures", icon: Receipt },
+    { to: "/admin/services", label: "Services & Contenu", icon: Wrench },
     { to: "/admin/realisations", label: "Réalisations", icon: Image },
     { to: "/admin/demandes", label: "Demandes", icon: Inbox },
   ];

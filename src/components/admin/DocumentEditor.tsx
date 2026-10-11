@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Trash2, Plus, Printer, Save, ArrowLeft, Eye, Edit3, Truck, FileText, CheckCircle2 } from "lucide-react";
+import { Trash2, Plus, Printer, Save, ArrowLeft, Eye, Edit3, Truck, FileText, CheckCircle2, Download, Loader2 } from "lucide-react";
 import { formatDT, formatDate, COMPANY } from "@/lib/format";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
@@ -177,12 +177,49 @@ export function DocumentEditor({ kind, id }: Props) {
     }
   };
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
   const printDocument = (format: "standard" | "bon_livraison") => {
     setDocFormat(format);
-    // Give state a moment to render then trigger native mobile/desktop print
+    setMobileTab("preview");
     setTimeout(() => {
       window.print();
-    }, 150);
+    }, 200);
+  };
+
+  const downloadPdf = async (format: "standard" | "bon_livraison") => {
+    setDocFormat(format);
+    setMobileTab("preview");
+    setDownloadingPdf(true);
+    toast.info("Génération du document PDF en cours…");
+
+    try {
+      const html2pdfModule = await import("html2pdf.js");
+      const html2pdf = html2pdfModule.default || html2pdfModule;
+
+      const element = document.getElementById("printable-a4-doc");
+      if (!element) throw new Error("Document introuvable");
+
+      const prefix = format === "bon_livraison" ? "Bon_de_Livraison" : kind === "devis" ? "Devis" : "Facture";
+      const cleanNum = (doc.numero || "document").replace(/[^a-zA-Z0-9-_]/g, "_");
+      const filename = `${prefix}_${cleanNum}.pdf`;
+
+      const opt = {
+        margin: [6, 8, 6, 8],
+        filename: filename,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      };
+
+      await html2pdf().set(opt).from(element).save();
+      toast.success("PDF téléchargé avec succès !");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erreur lors de la génération du PDF. Utilisez le bouton 'Imprimer'");
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   const addPaiement = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -270,28 +307,33 @@ export function DocumentEditor({ kind, id }: Props) {
             </button>
           </div>
 
-          {/* Print Buttons */}
-          <div className="flex items-center gap-1.5">
+          {/* Action Buttons: Télécharger PDF & Imprimer */}
+          <div className="flex flex-wrap items-center gap-1.5">
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-              onClick={() => printDocument("standard")}
-              title={`Imprimer ${kind === "devis" ? "le devis" : "la facture"}`}
-              className="h-9 px-3"
+              disabled={downloadingPdf}
+              onClick={() => downloadPdf(docFormat)}
+              title="Télécharger directement le fichier PDF (idéal sur téléphone)"
+              className="h-9 px-3 bg-blue-600 hover:bg-blue-700 text-white font-medium"
             >
-              <Printer className="mr-1.5 h-4 w-4 text-primary" />
-              <span className="hidden sm:inline">Imprimer</span> {kind === "devis" ? "Devis" : "Facture"}
+              {downloadingPdf ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-1.5 h-4 w-4" />
+              )}
+              <span>Télécharger PDF</span>
             </Button>
 
             <Button
               variant="outline"
               size="sm"
-              onClick={() => printDocument("bon_livraison")}
-              title="Imprimer comme Bon de Livraison"
-              className="h-9 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 dark:text-amber-200 border-amber-300/40"
+              onClick={() => printDocument(docFormat)}
+              title="Imprimer le document"
+              className="h-9 px-3"
             >
-              <Truck className="mr-1.5 h-4 w-4 text-amber-600 dark:text-amber-400" />
-              Bon de Livraison
+              <Printer className="mr-1.5 h-4 w-4 text-primary" />
+              <span>Imprimer</span>
             </Button>
           </div>
 
@@ -562,6 +604,7 @@ export function DocumentEditor({ kind, id }: Props) {
 
       {/* PRINTABLE A4 DOCUMENT (Visible on Desktop, or on Mobile when mobileTab === 'preview', ALWAYS in print) */}
       <div
+        id="printable-a4-doc"
         className={`a4-page mt-6 mx-auto rounded-xl border bg-card shadow-card print:border-0 print:shadow-none print:rounded-none print:m-0 print:p-0 ${
           mobileTab === "preview" ? "block" : "hidden md:block"
         }`}

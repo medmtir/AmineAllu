@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "@/components/site/Header";
 import { SiteFooter } from "@/components/site/Footer";
 import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
 const supabase = supabaseTyped as any;
 import hero from "@/assets/hero-aluminium.jpg";
@@ -49,18 +50,31 @@ function RealisationsPage() {
         <h1 className="mt-2 font-display text-5xl font-bold tracking-tight">Nos derniers projets</h1>
         <p className="mt-4 max-w-2xl text-muted-foreground">Un aperçu de notre savoir-faire en menuiserie aluminium.</p>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {list.map((it, i) => (
-            <figure key={it.id ?? i} className="group overflow-hidden rounded-lg shadow-card">
-              <img src={it.image_url} alt={`${it.titre || "Réalisation"} aluminium — ALU MED AMINE`} loading="lazy" width={1024} height={768}
-                className="aspect-[4/3] h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              {(it.titre || it.categorie) && (
-                <figcaption className="bg-card p-3">
-                  <div className="font-semibold">{it.titre}</div>
-                  {it.categorie && <div className="text-xs text-muted-foreground">{it.categorie}</div>}
-                </figcaption>
-              )}
-            </figure>
+            <Card key={it.id ?? i} className="group overflow-hidden border-border/60 p-0 shadow-card transition-all hover:shadow-elegant">
+              <div className="aspect-[4/3] overflow-hidden bg-muted">
+                <img
+                  src={it.image_url}
+                  alt={`${it.titre || "Réalisation"} aluminium — ALU MED AMINE`}
+                  loading="lazy"
+                  width={1024}
+                  height={768}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+              <div className="p-6">
+                {it.categorie && (
+                  <span className="text-xs uppercase tracking-wider text-accent font-semibold block mb-1">
+                    {it.categorie}
+                  </span>
+                )}
+                <h2 className="font-display text-lg font-semibold">{it.titre}</h2>
+                <p className="mt-1 text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                  {it.description || "Menuiserie aluminium sur mesure conçue et posée avec précision et élégance."}
+                </p>
+              </div>
+            </Card>
           ))}
         </div>
         {items !== null && items.length === 0 && (
