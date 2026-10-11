@@ -184,7 +184,7 @@ export function DocumentEditor({ kind, id }: Props) {
     setMobileTab("preview");
     setTimeout(() => {
       window.print();
-    }, 200);
+    }, 300);
   };
 
   const downloadPdf = async (format: "standard" | "bon_livraison") => {
@@ -193,6 +193,10 @@ export function DocumentEditor({ kind, id }: Props) {
     setDownloadingPdf(true);
     toast.info("Génération du document PDF en cours…");
 
+    // Wait for state and DOM to stabilize
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    let cloneContainer: HTMLElement | null = null;
     try {
       const html2pdfModule = await import("html2pdf.js");
       const html2pdf = html2pdfModule.default || html2pdfModule;
@@ -204,20 +208,117 @@ export function DocumentEditor({ kind, id }: Props) {
       const cleanNum = (doc.numero || "document").replace(/[^a-zA-Z0-9-_]/g, "_");
       const filename = `${prefix}_${cleanNum}.pdf`;
 
+      // Create an offscreen clone with fixed desktop A4 dimensions (794px width)
+      // This ensures the PDF looks like a clean desktop A4 page, never squished by phone screen width
+      cloneContainer = document.createElement("div");
+      cloneContainer.style.position = "fixed";
+      cloneContainer.style.left = "-9999px";
+      cloneContainer.style.top = "0";
+      cloneContainer.style.width = "794px";
+      cloneContainer.style.minHeight = "1123px";
+      cloneContainer.style.backgroundColor = "#ffffff";
+      cloneContainer.style.color = "#000000";
+      cloneContainer.style.zIndex = "-1000";
+
+      const cloned = element.cloneNode(true) as HTMLElement;
+      cloned.style.display = "block";
+      cloned.style.visibility = "visible";
+      cloned.style.width = "794px";
+      cloned.style.maxWidth = "794px";
+      cloned.style.margin = "0";
+      cloned.style.padding = "32px";
+      cloned.style.boxSizing = "border-box";
+      cloned.style.backgroundColor = "#ffffff";
+      cloned.style.color = "#000000";
+      cloned.classList.remove("hidden");
+      cloned.classList.add("block");
+
+      cloneContainer.appendChild(cloned);
+      document.body.appendChild(cloneContainer);
+
       const opt = {
-        margin: [6, 8, 6, 8],
+        margin: [6, 6, 6, 6],
         filename: filename,
         image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+          windowWidth: 1024,
+        },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       };
 
-      await html2pdf().set(opt).from(element).save();
-      toast.success("PDF téléchargé avec succès !");
+      // Generate the PDF blob
+      const worker = html2pdf().set(opt).from(cloned);
+      const pdfBlob: Blob = await worker.outputPdf("blob");
+
+      if (!pdfBlob || pdfBlob.size === 0) {
+        throw new Error("Échec de la création du fichier PDF");
+      }
+
+      // Check device environment
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const isMobile = isIOS || /Android/i.test(navigator.userAgent);
+      const file = new File([pdfBlob], filename, { type: "application/pdf" });
+
+      // On Mobile: Try native Web Share API first (opens iOS share sheet / Android share menu)
+      if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: filename,
+          });
+          toast.success("Document partagé / enregistré avec succès !");
+          return;
+        } catch (shareErr: any) {
+          if (shareErr.name === "AbortError") {
+            return;
+          }
+          console.warn("navigator.share failed, fallback to url:", shareErr);
+        }
+      }
+
+      // Fallback for iOS Safari or browsers where Web Share is unavailable:
+      const blobUrl = URL.createObjectURL(pdfBlob);
+
+      if (isIOS) {
+        // On iOS Safari, window.open with blob URL displays the native PDF viewer
+        const win = window.open(blobUrl, "_blank");
+        if (!win) {
+          window.location.href = blobUrl;
+        }
+        toast.success("PDF ouvert ! Vous pouvez l'enregistrer ou le partager.");
+        return;
+      }
+
+      // Desktop and Android standard download:
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 5000);
+
+      toast.success("Fichier PDF téléchargé avec succès !");
     } catch (err: any) {
-      console.error(err);
-      toast.error("Erreur lors de la génération du PDF. Utilisez le bouton 'Imprimer'");
+      console.error("PDF generation error:", err);
+      toast.error(
+        err.message && err.message !== "Document introuvable"
+          ? `Erreur: ${err.message}. Utilisez le bouton 'Imprimer'`
+          : "Erreur lors de la génération. Utilisez le bouton 'Imprimer'"
+      );
     } finally {
+      if (cloneContainer && cloneContainer.parentNode) {
+        cloneContainer.parentNode.removeChild(cloneContainer);
+      }
       setDownloadingPdf(false);
     }
   };
@@ -605,7 +706,7 @@ export function DocumentEditor({ kind, id }: Props) {
       {/* PRINTABLE A4 DOCUMENT (Visible on Desktop, or on Mobile when mobileTab === 'preview', ALWAYS in print) */}
       <div
         id="printable-a4-doc"
-        className={`a4-page mt-6 mx-auto rounded-xl border bg-card shadow-card print:border-0 print:shadow-none print:rounded-none print:m-0 print:p-0 ${
+        className={`a4-page mt-6 mx-auto rounded-xl border bg-card shadow-card print:border-0 print:shadow-none print:rounded-none print:m-0 print:p-0 print:!block print:!visible ${
           mobileTab === "preview" ? "block" : "hidden md:block"
         }`}
       >

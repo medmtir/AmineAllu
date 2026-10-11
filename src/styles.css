@@ -124,7 +124,7 @@
     margin: 8mm 10mm;
   }
 
-  html, body {
+  html, body, #root, main {
     background: #ffffff !important;
     color: #000000 !important;
     margin: 0 !important;
