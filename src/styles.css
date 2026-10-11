@@ -1,0 +1,173 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-steel: var(--steel);
+  --color-steel-foreground: var(--steel-foreground);
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: oklch(0.99 0.003 240);
+  --foreground: oklch(0.22 0.02 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.02 250);
+  --primary: oklch(0.62 0.17 248);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.01 245);
+  --secondary-foreground: oklch(0.28 0.04 250);
+  --muted: oklch(0.96 0.01 245);
+  --muted-foreground: oklch(0.5 0.02 250);
+  --accent: oklch(0.62 0.17 248);
+  --accent-foreground: oklch(0.99 0 0);
+  --destructive: oklch(0.6 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.9 0.01 245);
+  --input: oklch(0.9 0.01 245);
+  --ring: oklch(0.62 0.17 248);
+  --steel: oklch(0.5 0.03 250);
+  --steel-foreground: oklch(0.98 0 0);
+
+  --gradient-hero: linear-gradient(135deg, oklch(0.28 0.04 250) 0%, oklch(0.55 0.16 248) 100%);
+  --gradient-steel: linear-gradient(180deg, oklch(0.68 0.16 248), oklch(0.5 0.18 250));
+  --shadow-elegant: 0 20px 60px -20px color-mix(in oklab, oklch(0.55 0.18 248) 35%, transparent);
+  --shadow-card: 0 4px 16px -4px color-mix(in oklab, oklch(0.55 0.18 248) 18%, transparent);
+}
+
+.dark {
+  --background: oklch(0.16 0.02 250);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.22 0.02 250);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.22 0.02 250);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.98 0 0);
+  --primary-foreground: oklch(0.22 0.02 250);
+  --secondary: oklch(0.28 0.02 250);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.28 0.02 250);
+  --muted-foreground: oklch(0.7 0.02 250);
+  --accent: oklch(0.7 0.04 230);
+  --accent-foreground: oklch(0.22 0.02 250);
+  --destructive: oklch(0.7 0.19 22);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.7 0.04 230);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { font-family: var(--font-sans); }
+  body { background-color: var(--color-background); color: var(--color-foreground); }
+  h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
+}
+
+@layer utilities {
+  .bg-gradient-hero { background-image: var(--gradient-hero); }
+  .bg-gradient-steel { background-image: var(--gradient-steel); }
+  .shadow-elegant { box-shadow: var(--shadow-elegant); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+}
+
+/* A4 page sizing for printed documents */
+.a4-page {
+  width: 21cm;
+  min-height: 29.7cm;
+  padding: 1.5cm;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .a4-page {
+    padding: 0.85rem;
+    min-height: auto;
+    width: 100%;
+  }
+}
+
+/* Print styles for invoices/quotes & delivery notes */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  *, *:before, *:after {
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print, header, aside, nav, .toaster {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .a4-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+.print-only { display: none; }
