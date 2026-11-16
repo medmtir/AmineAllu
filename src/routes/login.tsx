@@ -39,7 +39,14 @@ function LoginPage() {
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
-      if (error) { toast.error("Email ou mot de passe incorrect"); return; }
+      if (error) {
+        if (error.message?.includes("fetch") || error.message?.includes("network") || (error as any).status === 0) {
+          toast.error("Impossible de contacter la base de données. Le projet Supabase est peut-être en pause (inactivité).");
+        } else {
+          toast.error("Email ou mot de passe incorrect");
+        }
+        return;
+      }
       toast.success("Connecté");
     }
   };
