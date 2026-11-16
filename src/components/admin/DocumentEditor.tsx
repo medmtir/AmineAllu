@@ -58,6 +58,8 @@ export function DocumentEditor({ kind, id }: Props) {
   const [mobileTab, setMobileTab] = useState<"edit" | "preview">(isNew ? "edit" : "preview");
   const [docFormat, setDocFormat] = useState<"standard" | "bon_livraison">("standard");
   const [blShowPrices, setBlShowPrices] = useState(false);
+  const [applyFodec, setApplyFodec] = useState(true);
+  const [applyTimbre, setApplyTimbre] = useState(true);
 
   useEffect(() => {
     supabase
@@ -97,7 +99,12 @@ export function DocumentEditor({ kind, id }: Props) {
   }, [id, isNew, kind, table, itemsTable]);
 
   const total_ht = items.reduce((s, it) => s + Number(it.quantite || 0) * Number(it.prix_unitaire || 0), 0);
-  const total_ttc = total_ht * (1 + Number(doc.tva_pct || 0) / 100);
+  const base_fodec = total_ht;
+  const fodec_montant = applyFodec ? Number((base_fodec * 0.01).toFixed(3)) : 0;
+  const base_tva = total_ht + fodec_montant;
+  const tva_montant = Number(((base_tva * Number(doc.tva_pct || 0)) / 100).toFixed(3));
+  const timbre_montant = (applyTimbre && total_ht > 0) ? 1.000 : 0;
+  const total_ttc = total_ht > 0 ? Number((base_tva + tva_montant + timbre_montant).toFixed(3)) : 0;
 
   const updateItem = (i: number, patch: Partial<DocItem>) => {
     setItems((arr) =>
@@ -360,7 +367,7 @@ export function DocumentEditor({ kind, id }: Props) {
   if (loading) return <div className="p-10 text-sm text-muted-foreground">Chargement…</div>;
 
   const client = clients.find((c) => c.id === doc.client_id);
-  const reste = Number(doc.total_ttc || total_ttc) - Number(doc.montant_paye || 0);
+  const reste = Math.max(0, total_ttc - Number(doc.montant_paye || 0));
 
   // Formatted BL Number
   const blNumero = `BL-${doc.numero?.replace(/^(DEV|FAC)-/, "") || doc.numero}`;
@@ -447,7 +454,7 @@ export function DocumentEditor({ kind, id }: Props) {
 
       {/* FORMAT SELECTOR & OPTIONS (Screen Only) */}
       <div className="no-print mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card/60 p-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="font-semibold text-foreground">Affichage document :</span>
           <div className="inline-flex rounded-md border p-0.5">
             <button
@@ -469,6 +476,23 @@ export function DocumentEditor({ kind, id }: Props) {
               Bon de Livraison
             </button>
           </div>
+
+          {(docFormat !== "bon_livraison" || blShowPrices) && (
+            <div className="flex flex-wrap items-center gap-3 sm:border-l sm:pl-3">
+              <div className="flex items-center gap-1.5">
+                <Switch id="apply-fodec" checked={applyFodec} onCheckedChange={setApplyFodec} />
+                <Label htmlFor="apply-fodec" className="cursor-pointer text-xs">
+                  FODEC 1%
+                </Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Switch id="apply-timbre" checked={applyTimbre} onCheckedChange={setApplyTimbre} />
+                <Label htmlFor="apply-timbre" className="cursor-pointer text-xs">
+                  Timbre fiscal (1 DT)
+                </Label>
+              </div>
+            </div>
+          )}
         </div>
 
         {docFormat === "bon_livraison" && (
@@ -571,6 +595,21 @@ export function DocumentEditor({ kind, id }: Props) {
               />
             </div>
           )}
+
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+            <div className="flex items-center gap-2">
+              <Switch id="m-apply-fodec" checked={applyFodec} onCheckedChange={setApplyFodec} />
+              <Label htmlFor="m-apply-fodec" className="cursor-pointer text-xs">
+                FODEC 1%
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="m-apply-timbre" checked={applyTimbre} onCheckedChange={setApplyTimbre} />
+              <Label htmlFor="m-apply-timbre" className="cursor-pointer text-xs">
+                Timbre (1 DT)
+              </Label>
+            </div>
+          </div>
         </Card>
 
         {/* Mobile Items List */}
@@ -650,13 +689,29 @@ export function DocumentEditor({ kind, id }: Props) {
         <Card className="p-4 space-y-2 bg-card">
           <div className="font-display text-sm font-semibold mb-2">Récapitulatif Financier</div>
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">Total HT</span>
-            <span className="font-medium">{formatDT(total_ht)}</span>
+            <span className="text-muted-foreground">Base FODEC</span>
+            <span className="font-medium">{formatDT(base_fodec)}</span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-muted-foreground">TVA ({doc.tva_pct}%)</span>
-            <span className="font-medium">{formatDT((total_ht * Number(doc.tva_pct || 0)) / 100)}</span>
+            <span className="text-muted-foreground font-semibold">Total HT</span>
+            <span className="font-semibold">{formatDT(total_ht)}</span>
           </div>
+          {applyFodec && (
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">FODEC (1%)</span>
+              <span className="font-medium">{formatDT(fodec_montant)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-xs">
+            <span className="text-muted-foreground">TVA ({doc.tva_pct}%)</span>
+            <span className="font-medium">{formatDT(tva_montant)}</span>
+          </div>
+          {applyTimbre && (
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Timbre Fiscal</span>
+              <span className="font-medium">{formatDT(timbre_montant)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-base font-bold border-t pt-2">
             <span>Total TTC</span>
             <span className="text-primary">{formatDT(total_ttc)}</span>
@@ -942,15 +997,31 @@ export function DocumentEditor({ kind, id }: Props) {
         {/* FINANCIAL SUMMARY (Only for Standard or if BL with prices) */}
         {(docFormat !== "bon_livraison" || blShowPrices) && (
           <div className="mt-6 ml-auto w-64 sm:w-72 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total HT</span>
-              <span className="font-medium">{formatDT(total_ht)}</span>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Base FODEC</span>
+              <span className="font-medium text-foreground">{formatDT(base_fodec)}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground font-semibold">Total HT</span>
+              <span className="font-semibold text-foreground">{formatDT(total_ht)}</span>
+            </div>
+            {applyFodec && (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>FODEC (1%)</span>
+                <span className="font-medium text-foreground">{formatDT(fodec_montant)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">TVA {doc.tva_pct}%</span>
-              <span className="font-medium">{formatDT((total_ht * Number(doc.tva_pct || 0)) / 100)}</span>
+              <span className="font-medium text-foreground">{formatDT(tva_montant)}</span>
             </div>
-            <div className="flex justify-between border-t pt-2 font-display text-base sm:text-lg font-bold text-foreground">
+            {applyTimbre && (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Timbre Fiscal</span>
+                <span className="font-medium text-foreground">{formatDT(timbre_montant)}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t-2 border-primary/30 pt-2 font-display text-base sm:text-lg font-bold text-foreground">
               <span>Total TTC</span>
               <span className="text-primary">{formatDT(total_ttc)}</span>
             </div>
