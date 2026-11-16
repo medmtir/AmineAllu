@@ -204,6 +204,8 @@ export function DocumentEditor({ kind, id }: Props) {
     await new Promise((resolve) => setTimeout(resolve, 350));
 
     let cloneContainer: HTMLElement | null = null;
+    let origGetComputedStyle: typeof window.getComputedStyle | null = null;
+
     try {
       const html2pdfModule = await import("html2pdf.js");
       const html2pdf = html2pdfModule.default || html2pdfModule;
@@ -215,8 +217,50 @@ export function DocumentEditor({ kind, id }: Props) {
       const cleanNum = (doc.numero || "document").replace(/[^a-zA-Z0-9-_]/g, "_");
       const filename = `${prefix}_${cleanNum}.pdf`;
 
+      // Helper to convert any modern color (oklab, lab, oklch, color-mix) to safe rgb/hex
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = 1;
+      tempCanvas.height = 1;
+      const ctx = tempCanvas.getContext("2d");
+
+      const toSafeRgb = (color: string): string => {
+        if (!color || typeof color !== "string") return color;
+        if (!color.includes("lab") && !color.includes("color-mix") && !color.includes("lch")) return color;
+        try {
+          if (ctx) {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillStyle = color;
+            return ctx.fillStyle;
+          }
+        } catch {
+          // fallback
+        }
+        return "#000000";
+      };
+
+      // Wrap getComputedStyle while html2canvas runs so it never crashes on oklab/lab
+      origGetComputedStyle = window.getComputedStyle;
+      window.getComputedStyle = function (elt: Element, pseudo?: string | null) {
+        const style = origGetComputedStyle!.call(window, elt, pseudo);
+        return new Proxy(style, {
+          get(target: any, prop: string | symbol) {
+            const orig = typeof target[prop] === "function" ? target[prop].bind(target) : target[prop];
+            if (typeof prop === "string") {
+              if (prop === "getPropertyValue") {
+                return function (propName: string) {
+                  return toSafeRgb(target.getPropertyValue(propName));
+                };
+              }
+              if (prop === "color" || prop.toLowerCase().includes("color")) {
+                return toSafeRgb(orig);
+              }
+            }
+            return orig;
+          },
+        });
+      };
+
       // Create an offscreen clone with fixed desktop A4 dimensions (794px width)
-      // This ensures the PDF looks like a clean desktop A4 page, never squished by phone screen width
       cloneContainer = document.createElement("div");
       cloneContainer.style.position = "fixed";
       cloneContainer.style.left = "-9999px";
@@ -253,6 +297,28 @@ export function DocumentEditor({ kind, id }: Props) {
           logging: false,
           backgroundColor: "#ffffff",
           windowWidth: 1024,
+          onclone: (clonedDoc: Document) => {
+            const all = clonedDoc.querySelectorAll("*");
+            all.forEach((el: any) => {
+              if (!el.style) return;
+              const props = [
+                "color",
+                "backgroundColor",
+                "borderColor",
+                "borderTopColor",
+                "borderRightColor",
+                "borderBottomColor",
+                "borderLeftColor",
+                "outlineColor",
+              ];
+              props.forEach((p) => {
+                const val = el.style[p];
+                if (val && typeof val === "string" && (val.includes("lab") || val.includes("color-mix"))) {
+                  el.style[p] = toSafeRgb(val);
+                }
+              });
+            });
+          },
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       };
@@ -291,7 +357,6 @@ export function DocumentEditor({ kind, id }: Props) {
       const blobUrl = URL.createObjectURL(pdfBlob);
 
       if (isIOS) {
-        // On iOS Safari, window.open with blob URL displays the native PDF viewer
         const win = window.open(blobUrl, "_blank");
         if (!win) {
           window.location.href = blobUrl;
@@ -323,6 +388,9 @@ export function DocumentEditor({ kind, id }: Props) {
           : "Erreur lors de la génération. Utilisez le bouton 'Imprimer'"
       );
     } finally {
+      if (origGetComputedStyle) {
+        window.getComputedStyle = origGetComputedStyle;
+      }
       if (cloneContainer && cloneContainer.parentNode) {
         cloneContainer.parentNode.removeChild(cloneContainer);
       }
@@ -766,7 +834,7 @@ export function DocumentEditor({ kind, id }: Props) {
         }`}
       >
         {/* Document Header */}
-        <div className="flex items-start justify-between border-b-2 border-primary/30 pb-4 sm:pb-6 gap-3">
+        <div className="flex items-start justify-between border-b-2 border-[#0284c7] pb-4 sm:pb-6 gap-3">
           <div className="flex items-start gap-3 sm:gap-4">
             <Logo size={70} />
             <div>
@@ -796,7 +864,7 @@ export function DocumentEditor({ kind, id }: Props) {
 
         {/* Client Box & Desktop Controls */}
         <div className="mt-4 sm:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="rounded-lg border sm:border-0 p-3 sm:p-0 bg-muted/20 sm:bg-transparent">
+          <div className="rounded-lg border sm:border-0 p-3 sm:p-0 bg-[#f8fafc] sm:bg-transparent">
             <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Client</div>
             <div className="mt-1 text-base font-bold text-foreground">{client?.nom || "—"}</div>
             {client?.adresse && <div className="text-xs text-muted-foreground mt-0.5">{client.adresse}</div>}
@@ -895,7 +963,7 @@ export function DocumentEditor({ kind, id }: Props) {
         <div className="mt-6 overflow-x-auto">
           <table className="w-full text-sm border-collapse">
             <thead>
-              <tr className="border-b-2 border-primary/20 text-left text-xs font-semibold uppercase text-muted-foreground">
+              <tr className="border-b-2 border-[#bae6fd] text-left text-xs font-semibold uppercase text-muted-foreground">
                 <th className="py-2.5 px-1">Désignation</th>
                 <th className="py-2.5 px-2 text-right w-20 sm:w-24">Qté</th>
                 {(docFormat !== "bon_livraison" || blShowPrices) && (
@@ -907,7 +975,7 @@ export function DocumentEditor({ kind, id }: Props) {
                 <th className="no-print w-8"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/60">
+            <tbody className="divide-y divide-[#e2e8f0]">
               {items.map((it, i) => (
                 <tr key={i} className="align-top">
                   {/* Designation */}
@@ -1021,17 +1089,17 @@ export function DocumentEditor({ kind, id }: Props) {
                 <span className="font-medium text-foreground">{formatDT(timbre_montant)}</span>
               </div>
             )}
-            <div className="flex justify-between border-t-2 border-primary/30 pt-2 font-display text-base sm:text-lg font-bold text-foreground">
+            <div className="flex justify-between border-t-2 border-[#0284c7] pt-2 font-display text-base sm:text-lg font-bold text-foreground">
               <span>Total TTC</span>
               <span className="text-primary">{formatDT(total_ttc)}</span>
             </div>
             {kind === "facture" && (
               <>
-                <div className="flex justify-between pt-1.5 text-xs text-green-700">
+                <div className="flex justify-between pt-1.5 text-xs text-[#15803d]">
                   <span>Montant Payé</span>
                   <span className="font-semibold">{formatDT(doc.montant_paye || 0)}</span>
                 </div>
-                <div className="flex justify-between text-xs font-bold text-destructive">
+                <div className="flex justify-between text-xs font-bold text-[#b91c1c]">
                   <span>Reste Dû</span>
                   <span>{formatDT(reste)}</span>
                 </div>
@@ -1060,7 +1128,7 @@ export function DocumentEditor({ kind, id }: Props) {
 
         {/* SIGNATURES SECTION */}
         {docFormat === "bon_livraison" ? (
-          <div className="mt-8 border-t-2 border-dashed border-border pt-4">
+          <div className="mt-8 border-t-2 border-dashed border-[#e2e8f0] pt-4">
             <div className="grid grid-cols-2 gap-4 text-xs">
               <div className="border rounded-md p-3 h-28 flex flex-col justify-between">
                 <span className="font-semibold">Cachet & Signature de l'Entreprise :</span>
@@ -1077,7 +1145,7 @@ export function DocumentEditor({ kind, id }: Props) {
             <div className="text-[11px] text-muted-foreground">
               {COMPANY.name} — Spécialiste Aluminium sur mesure
             </div>
-            <div className="text-right border-t border-muted-foreground/30 pt-1 w-44">
+            <div className="text-right border-t border-[#cbd5e1] pt-1 w-44">
               <span className="font-semibold">Signature & Cachet</span>
             </div>
           </div>
