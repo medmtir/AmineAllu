@@ -6,6 +6,9 @@ import {
   OuvrageCalculationResult,
   AtelierProjet,
   AtelierProjetItem,
+  WorkshopCostRates,
+  DEFAULT_WORKSHOP_RATES,
+  AccessoireItem,
 } from "@/lib/alucalc/types";
 import { SchematicView } from "@/components/admin/calculateur/SchematicView";
 import { CuttingOptimizerView } from "@/components/admin/calculateur/CuttingOptimizerView";
@@ -56,6 +59,11 @@ import {
   BarChart3,
   PackageCheck,
   FolderKanban,
+  BadgeCent,
+  Settings,
+  SlidersHorizontal,
+  Edit2,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
@@ -162,6 +170,27 @@ export function CalculateurPage() {
   const [savedProjects, setSavedProjects] = useState<AtelierProjet[]>([]);
   const [openLoadDialog, setOpenLoadDialog] = useState<boolean>(false);
 
+  // Workshop costing rates (persisted in localStorage)
+  const [costRates, setCostRates] = useState<WorkshopCostRates>(() => {
+    try {
+      const saved = localStorage.getItem("alu_atelier_tarifs");
+      if (saved) return { ...DEFAULT_WORKSHOP_RATES, ...JSON.parse(saved) };
+    } catch (e) {}
+    return DEFAULT_WORKSHOP_RATES;
+  });
+
+  const [tempRates, setTempRates] = useState<WorkshopCostRates>(costRates);
+  const [customAccessoirePrices, setCustomAccessoirePrices] = useState<Record<string, number>>({});
+  const [extraAccessoires, setExtraAccessoires] = useState<AccessoireItem[]>([]);
+
+  // Dialog controls
+  const [openRatesDialog, setOpenRatesDialog] = useState<boolean>(false);
+  const [openAddAccessoireDialog, setOpenAddAccessoireDialog] = useState<boolean>(false);
+  const [newAccNom, setNewAccNom] = useState<string>("");
+  const [newAccQte, setNewAccQte] = useState<number>(1);
+  const [newAccUnite, setNewAccUnite] = useState<string>("Pce");
+  const [newAccPrix, setNewAccPrix] = useState<number>(5);
+
   // Active view tab
   const [activeTab, setActiveTab] = useState<string>("schema");
   const [isPrintSheetOpen, setIsPrintSheetOpen] = useState<boolean>(false);
@@ -187,6 +216,11 @@ export function CalculateurPage() {
       console.error(e);
     }
   }, []);
+
+  // Sync tempRates when costRates changes or dialog opens
+  useEffect(() => {
+    setTempRates(costRates);
+  }, [costRates, openRatesDialog]);
 
   // Update default subType and vitrage when category changes
   const handleCategoryChange = (cat: OuvrageCategory) => {
@@ -230,7 +264,7 @@ export function CalculateurPage() {
 
   // Live calculation result (converts cm to mm for exact fabrication engine)
   const currentResult: OuvrageCalculationResult = useMemo(() => {
-    return calculateOuvrage({
+    const base = calculateOuvrage({
       category,
       subType,
       largeurMm: Math.round(largeurCm * 10),
@@ -240,8 +274,107 @@ export function CalculateurPage() {
       serie,
       couleurAlu,
       vitrageType,
+      rates: costRates,
+      customAccessoirePrices,
     });
-  }, [category, subType, largeurCm, hauteurCm, profondeurCm, quantite, serie, couleurAlu, vitrageType]);
+
+    if (extraAccessoires.length > 0) {
+      const allAcc = [...base.accessoires, ...extraAccessoires];
+      const extraCost = extraAccessoires.reduce((s, a) => s + (a.prixEstime || 0) * a.quantite, 0);
+      const totalAccCost = Number((base.coutAccessoiresDt + extraCost).toFixed(1));
+      const newRevient = Math.round(base.coutAluDt + base.coutVitrageDt + totalAccCost + base.coutMainDoeuvreDt);
+      const margePct = costRates.margeBeneficiairePct || 35;
+      const newVente = Math.round(newRevient * (1 + margePct / 100));
+
+      return {
+        ...base,
+        accessoires: allAcc,
+        coutAccessoiresDt: totalAccCost,
+        prixRevientEstimeDt: newRevient,
+        prixVenteSuggereDt: newVente,
+        beneficeEstimeDt: Math.max(0, newVente - newRevient),
+      };
+    }
+
+    return base;
+  }, [
+    category,
+    subType,
+    largeurCm,
+    hauteurCm,
+    profondeurCm,
+    quantite,
+    serie,
+    couleurAlu,
+    vitrageType,
+    costRates,
+    customAccessoirePrices,
+    extraAccessoires,
+  ]);
+
+  // Handle inline price update for an accessory
+  const handleUpdateAccessoirePrice = (id: string, newPrice: number) => {
+    const p = Math.max(0, Number(newPrice) || 0);
+    setCustomAccessoirePrices((prev) => ({
+      ...prev,
+      [id]: p,
+    }));
+    setExtraAccessoires((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, prixEstime: p } : a))
+    );
+  };
+
+  // Add custom accessory to current ouvrage
+  const handleAddExtraAccessoire = () => {
+    if (!newAccNom.trim()) {
+      toast.error("Veuillez saisir le nom de l'accessoire");
+      return;
+    }
+    const item: AccessoireItem = {
+      id: `custom-acc-${Date.now()}`,
+      nom: newAccNom.trim(),
+      quantite: Math.max(1, newAccQte),
+      unite: newAccUnite || "Pce",
+      prixEstime: Math.max(0, newAccPrix),
+      role: "Accessoire atelier personnalisé",
+    };
+    setExtraAccessoires((prev) => [...prev, item]);
+    setNewAccNom("");
+    setNewAccQte(1);
+    setNewAccPrix(5);
+    setOpenAddAccessoireDialog(false);
+    toast.success(`Accessoire "${item.nom}" ajouté !`);
+  };
+
+  // Remove custom accessory
+  const handleRemoveExtraAccessoire = (id: string) => {
+    setExtraAccessoires((prev) => prev.filter((a) => a.id !== id));
+    toast.info("Accessoire retiré");
+  };
+
+  // Save rates to localStorage
+  const handleSaveRates = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCostRates(tempRates);
+    try {
+      localStorage.setItem("alu_atelier_tarifs", JSON.stringify(tempRates));
+      toast.success("Tarifs d'achat atelier enregistrés !");
+    } catch {
+      toast.error("Erreur de sauvegarde locale");
+    }
+    setOpenRatesDialog(false);
+  };
+
+  // Reset rates to standard defaults
+  const handleResetRates = () => {
+    setTempRates(DEFAULT_WORKSHOP_RATES);
+    setCostRates(DEFAULT_WORKSHOP_RATES);
+    try {
+      localStorage.setItem("alu_atelier_tarifs", JSON.stringify(DEFAULT_WORKSHOP_RATES));
+      toast.info("Tarifs réinitialisés aux valeurs standards");
+    } catch {}
+    setOpenRatesDialog(false);
+  };
 
   // Add current calculation as an item in the project
   const handleAddToProject = () => {
@@ -492,6 +625,16 @@ export function CalculateurPage() {
               </DialogContent>
             </Dialog>
 
+            {/* Rates Config Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setOpenRatesDialog(true)}
+              className="h-9 text-xs px-2 border-primary/40 text-primary hover:bg-primary/5"
+            >
+              <SlidersHorizontal className="mr-1 h-3.5 w-3.5 shrink-0" /> Tarifs Atelier
+            </Button>
+
             {/* Save Project Button */}
             <Button variant="outline" size="sm" onClick={handleSaveProject} className="h-9 text-xs px-2">
               <Save className="mr-1 h-3.5 w-3.5 shrink-0" /> Sauvegarder
@@ -699,31 +842,76 @@ export function CalculateurPage() {
                 </Select>
               </div>
 
-              {/* Estimation financière */}
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/50">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Poids Aluminium Estimé :</span>
-                  <span className="font-mono font-bold text-foreground">
-                    {currentResult.poidsEstimeKg} kg
+              {/* Estimation financière détaillée */}
+              <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50/40 p-3.5 dark:border-slate-800 dark:bg-slate-950/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <BadgeCent className="h-4 w-4 text-primary" /> Coûts d'Achat & Revient Réel
                   </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setOpenRatesDialog(true)}
+                    className="h-6 px-2 text-[11px] text-primary hover:text-primary font-semibold hover:bg-primary/10"
+                  >
+                    <SlidersHorizontal className="mr-1 h-3 w-3" /> Tarifs Atelier
+                  </Button>
                 </div>
-                <div className="mt-1 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Surface Totale :</span>
-                  <span className="font-mono font-bold text-foreground">
-                    {currentResult.surfaceTotaleM2} m²
-                  </span>
-                </div>
-                <div className="mt-1 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Coût Revient Estimé :</span>
-                  <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
-                    ~{currentResult.prixRevientEstimeDt} DT
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center justify-between border-t pt-2 text-sm">
-                  <span className="font-bold text-foreground">Prix de Vente Conseillé :</span>
-                  <span className="font-mono text-base font-black text-emerald-600">
-                    {currentResult.prixVenteSuggereDt} DT
-                  </span>
+
+                <div className="space-y-1.5 text-xs divide-y divide-slate-200/70 dark:divide-slate-800/70">
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-muted-foreground">
+                      Alu ({currentResult.poidsEstimeKg} kg @ {costRates.prixKgAluminium} DT/kg) :
+                    </span>
+                    <span className="font-mono font-bold text-foreground">
+                      {currentResult.coutAluDt} DT
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-muted-foreground">
+                      Vitrage / Remplissage ({currentResult.surfaceTotaleM2} m²) :
+                    </span>
+                    <span className="font-mono font-bold text-foreground">
+                      {currentResult.coutVitrageDt} DT
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-muted-foreground">Accessoires & Quincaillerie :</span>
+                    <span className="font-mono font-bold text-foreground">
+                      {currentResult.coutAccessoiresDt} DT
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-muted-foreground">
+                      Façonnage ({costRates.mainDoeuvreM2} DT/m²) :
+                    </span>
+                    <span className="font-mono font-bold text-foreground">
+                      {currentResult.coutMainDoeuvreDt} DT
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1.5 font-bold text-slate-800 dark:text-slate-200">
+                    <span>Coût de Revient Total Brut :</span>
+                    <span className="font-mono text-sm font-black text-slate-900 dark:text-white">
+                      {currentResult.prixRevientEstimeDt} DT
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 text-emerald-700 dark:text-emerald-400 font-semibold">
+                    <span>Marge Atelier (+{costRates.margeBeneficiairePct}%) :</span>
+                    <span className="font-mono font-bold">+{currentResult.beneficeEstimeDt} DT</span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t-2 border-primary/20">
+                    <span className="font-black text-sm text-foreground">Prix de Vente Conseillé :</span>
+                    <span className="font-mono text-base font-black text-emerald-600">
+                      {currentResult.prixVenteSuggereDt} DT
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -910,38 +1098,133 @@ export function CalculateurPage() {
                 </CardContent>
               </Card>
 
-              {/* Accessoires Table */}
+              {/* Accessoires Table with Editable Prices & Add Button */}
               <Card className="border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Package className="h-4 w-4 text-primary" /> Accessoires & Quincaillerie
-                  </CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div>
+                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                      <Package className="h-4 w-4 text-primary" /> Accessoires & Quincaillerie Nécessaires
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Modifiez directement les prix unitaires d'achat pour que le prix de revient s'ajuste au millime
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setOpenAddAccessoireDialog(true)}
+                    className="text-xs h-8 border-primary/30 text-primary hover:bg-primary/5"
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" /> Ajouter un accessoire
+                  </Button>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <table className="w-full text-left text-xs">
-                    <thead className="border-b bg-muted/40 font-semibold text-muted-foreground">
-                      <tr>
-                        <th className="py-2 px-3">Article</th>
-                        <th className="py-2 px-3 text-center">Quantité</th>
-                        <th className="py-2 px-3 text-center">Unité</th>
-                        <th className="py-2 px-3 text-right">Prix Est.</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {currentResult.accessoires.map((a, i) => (
-                        <tr key={i} className="hover:bg-muted/30">
-                          <td className="py-2 px-3 font-medium text-foreground">{a.nom}</td>
-                          <td className="py-2 px-3 text-center font-mono font-bold text-foreground">
-                            {a.quantite}
-                          </td>
-                          <td className="py-2 px-3 text-center text-muted-foreground">{a.unite}</td>
-                          <td className="py-2 px-3 text-right font-mono text-muted-foreground">
-                            {a.prixEstime ? `${(a.prixEstime * a.quantite).toFixed(1)} DT` : "—"}
-                          </td>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="border-b bg-muted/40 font-semibold text-muted-foreground">
+                        <tr>
+                          <th className="py-2 px-3">Article & Rôle</th>
+                          <th className="py-2 px-3 text-center">Qté</th>
+                          <th className="py-2 px-3 text-center">Unité</th>
+                          <th className="py-2 px-3 text-right">Prix Unitaire Achat (DT)</th>
+                          <th className="py-2 px-3 text-right">Total Ligne</th>
+                          <th className="py-2 px-2 text-center">Action</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y">
+                        {currentResult.accessoires.map((a, i) => {
+                          const unitPrice =
+                            customAccessoirePrices[a.id] !== undefined
+                              ? customAccessoirePrices[a.id]
+                              : a.prixEstime || 0;
+                          const lineTotal = Number((unitPrice * a.quantite).toFixed(1));
+                          const isCustom = a.id.startsWith("custom-");
+
+                          return (
+                            <tr key={a.id || i} className="hover:bg-muted/30">
+                              <td className="py-2.5 px-3">
+                                <div className="font-semibold text-foreground flex items-center gap-1.5">
+                                  {a.nom}
+                                  {isCustom && (
+                                    <Badge variant="secondary" className="text-[9px] py-0 px-1">
+                                      Personnalisé
+                                    </Badge>
+                                  )}
+                                </div>
+                                {a.role && (
+                                  <div className="text-[11px] text-muted-foreground">{a.role}</div>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                {isCustom ? (
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={a.quantite}
+                                    onChange={(e) => handleUpdateAccessoireQty(a.id, Number(e.target.value))}
+                                    className="h-7 w-16 text-center font-mono text-xs font-bold mx-auto"
+                                  />
+                                ) : (
+                                  <span className="font-mono font-bold text-foreground">{a.quantite}</span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 text-center text-muted-foreground">{a.unite}</td>
+                              <td className="py-2.5 px-3 text-right">
+                                <div className="inline-flex items-center gap-1 justify-end">
+                                  <Input
+                                    type="number"
+                                    step="0.1"
+                                    min="0"
+                                    value={unitPrice}
+                                    onChange={(e) =>
+                                      handleUpdateAccessoirePrice(a.id, Number(e.target.value))
+                                    }
+                                    className="h-7 w-20 text-right font-mono text-xs font-bold"
+                                  />
+                                  <span className="text-[11px] text-muted-foreground">DT</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono font-bold text-primary text-xs">
+                                {lineTotal.toFixed(1)} DT
+                              </td>
+                              <td className="py-2.5 px-2 text-center">
+                                {isCustom ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleRemoveExtraAccessoire(a.id)}
+                                    className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Mettre à 0 DT"
+                                    onClick={() => handleUpdateAccessoirePrice(a.id, 0)}
+                                    className="h-7 w-7 text-muted-foreground hover:text-amber-600"
+                                  >
+                                    <RotateCcw className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Accessories Total Footer */}
+                  <div className="flex items-center justify-between border-t bg-muted/30 p-3">
+                    <span className="text-xs font-bold text-muted-foreground">
+                      Total Coût Quincaillerie & Accessoires ({currentResult.accessoires.length} articles) :
+                    </span>
+                    <span className="font-mono text-sm font-black text-primary">
+                      {currentResult.coutAccessoiresDt} DT
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1054,6 +1337,238 @@ export function CalculateurPage() {
           </Tabs>
         </div>
       </div>
+
+      {/* Workshop Rates Configuration Dialog */}
+      <Dialog open={openRatesDialog} onOpenChange={setOpenRatesDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <SlidersHorizontal className="h-5 w-5 text-primary" /> Configuration des Prix d'Achat & Coûts Atelier
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground">
+              Ajustez vos vrais prix d'achat chez vos fournisseurs pour calculer la marge exacte et le prix de revient réel.
+            </p>
+          </DialogHeader>
+
+          <form onSubmit={handleSaveRates} className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Aluminium TPR (DT / kg)</Label>
+                <Input
+                  type="number"
+                  step="0.5"
+                  min="5"
+                  value={tempRates.prixKgAluminium}
+                  onChange={(e) =>
+                    setTempRates({ ...tempRates, prixKgAluminium: Number(e.target.value) || 0 })
+                  }
+                  className="font-mono text-xs font-bold"
+                />
+                <span className="text-[10px] text-muted-foreground">Prix du kg de profilé chez fournisseur</span>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Main d'œuvre (DT / m²)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={tempRates.mainDoeuvreM2}
+                  onChange={(e) =>
+                    setTempRates({ ...tempRates, mainDoeuvreM2: Number(e.target.value) || 0 })
+                  }
+                  className="font-mono text-xs font-bold"
+                />
+                <span className="text-[10px] text-muted-foreground">Coût découpe et assemblage par m²</span>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Verre Simple 6mm (DT / m²)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="10"
+                  value={tempRates.prixM2VitrageSimple}
+                  onChange={(e) =>
+                    setTempRates({ ...tempRates, prixM2VitrageSimple: Number(e.target.value) || 0 })
+                  }
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Double Vitrage (DT / m²)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="20"
+                  value={tempRates.prixM2VitrageDouble}
+                  onChange={(e) =>
+                    setTempRates({ ...tempRates, prixM2VitrageDouble: Number(e.target.value) || 0 })
+                  }
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Verre Stop-Sol (DT / m²)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="20"
+                  value={tempRates.prixM2VitrageStopSol}
+                  onChange={(e) =>
+                    setTempRates({ ...tempRates, prixM2VitrageStopSol: Number(e.target.value) || 0 })
+                  }
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Panneau Alucobond (DT / m²)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="20"
+                  value={tempRates.prixM2Alucobond}
+                  onChange={(e) =>
+                    setTempRates({ ...tempRates, prixM2Alucobond: Number(e.target.value) || 0 })
+                  }
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Toile Moustiquaire (DT / m²)</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="10"
+                  value={tempRates.prixM2ToileMoustiquaire}
+                  onChange={(e) =>
+                    setTempRates({ ...tempRates, prixM2ToileMoustiquaire: Number(e.target.value) || 0 })
+                  }
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                  Marge Bénéficiaire (%)
+                </Label>
+                <Input
+                  type="number"
+                  step="1"
+                  min="5"
+                  max="150"
+                  value={tempRates.margeBeneficiairePct}
+                  onChange={(e) =>
+                    setTempRates({ ...tempRates, margeBeneficiairePct: Number(e.target.value) || 0 })
+                  }
+                  className="font-mono text-xs font-black text-emerald-700"
+                />
+                <span className="text-[10px] text-muted-foreground">Ex: 35% de marge sur coût global</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-3 border-t">
+              <Button type="button" variant="ghost" size="sm" onClick={handleResetRates} className="text-xs text-muted-foreground">
+                <RotateCcw className="mr-1 h-3.5 w-3.5" /> Réinitialiser
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setOpenRatesDialog(false)} className="text-xs">
+                  Annuler
+                </Button>
+                <Button type="submit" size="sm" className="bg-primary text-white text-xs font-bold btn-3d">
+                  Enregistrer mes tarifs
+                </Button>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Add Custom Accessory */}
+      <Dialog open={openAddAccessoireDialog} onOpenChange={setOpenAddAccessoireDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-1.5">
+              <Plus className="h-4 w-4 text-primary" /> Ajouter un Accessoire / Quincaillerie
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Nom de l'accessoire</Label>
+              <Input
+                placeholder="Ex: Cartouche Silicone Neutre, Poignée cuvette..."
+                value={newAccNom}
+                onChange={(e) => setNewAccNom(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Quantité</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={newAccQte}
+                  onChange={(e) => setNewAccQte(Math.max(1, Number(e.target.value) || 1))}
+                  className="h-8 font-mono text-xs font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Unité</Label>
+                <Select value={newAccUnite} onValueChange={setNewAccUnite}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pce">Pièce (Pce)</SelectItem>
+                    <SelectItem value="Paire">Paire</SelectItem>
+                    <SelectItem value="Mètre">Mètre (m)</SelectItem>
+                    <SelectItem value="Cartouche">Cartouche</SelectItem>
+                    <SelectItem value="Paquet">Paquet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Prix Unitaire d'Achat (DT)</Label>
+              <Input
+                type="number"
+                step="0.5"
+                min="0"
+                value={newAccPrix}
+                onChange={(e) => setNewAccPrix(Math.max(0, Number(e.target.value) || 0))}
+                className="h-8 font-mono text-xs font-bold"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpenAddAccessoireDialog(false)}
+                className="text-xs"
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleAddExtraAccessoire}
+                className="bg-primary text-white text-xs font-bold btn-3d"
+              >
+                Ajouter
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

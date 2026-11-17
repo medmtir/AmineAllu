@@ -12,6 +12,7 @@ interface SchematicViewProps {
   couleurAlu: string;
   vitrageType: string;
   titre: string;
+  printMode?: boolean;
 }
 
 export function SchematicView({
@@ -23,6 +24,7 @@ export function SchematicView({
   couleurAlu,
   vitrageType,
   titre,
+  printMode = false,
 }: SchematicViewProps) {
   const [zoom, setZoom] = useState(1);
   const [showCotations, setShowCotations] = useState(true);
@@ -96,74 +98,88 @@ export function SchematicView({
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
-      {/* Top Toolbar */}
-      <div className="mb-3 flex w-full flex-wrap items-center justify-between gap-2 border-b pb-2 text-xs text-muted-foreground">
-        <div className="flex items-center gap-1.5 font-medium text-foreground">
-          <span className="inline-block h-2.5 w-2.5 rounded-full bg-primary" />
-          <span>{titre}</span>
-          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-bold text-foreground">
-            {formatCm(L)} × {formatCm(H)} cm
-          </span>
-        </div>
+    <div
+      className={
+        printMode
+          ? "w-full flex items-center justify-center p-0"
+          : "relative flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+      }
+    >
+      {/* Top Toolbar (Hidden on printMode) */}
+      {!printMode && (
+        <div className="mb-3 flex w-full flex-wrap items-center justify-between gap-2 border-b pb-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 font-medium text-foreground">
+            <span className="inline-block h-2.5 w-2.5 rounded-full bg-primary" />
+            <span>{titre}</span>
+            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-bold text-foreground">
+              {formatCm(L)} × {formatCm(H)} cm
+            </span>
+          </div>
 
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={() => setShowCotations(!showCotations)}
-            title="Afficher/Masquer cotations"
-          >
-            {showCotations ? <Eye className="mr-1 h-3.5 w-3.5" /> : <EyeOff className="mr-1 h-3.5 w-3.5" />}
-            Cotations
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setShowCotations(!showCotations)}
+              title="Afficher/Masquer cotations"
+            >
+              {showCotations ? <Eye className="mr-1 h-3.5 w-3.5" /> : <EyeOff className="mr-1 h-3.5 w-3.5" />}
+              Cotations
+            </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setZoom((z) => Math.min(2, z + 0.15))}
-            title="Zoom avant"
-          >
-            <ZoomIn className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setZoom((z) => Math.max(0.5, z - 0.15))}
-            title="Zoom arrière"
-          >
-            <ZoomOut className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setZoom(1)}
-            title="Réinitialiser zoom"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={downloadSvg}
-            title="Télécharger dessin SVG"
-          >
-            <Download className="mr-1 h-3.5 w-3.5" />
-            SVG
-          </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setZoom((z) => Math.min(2, z + 0.15))}
+              title="Zoom avant"
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setZoom((z) => Math.max(0.5, z - 0.15))}
+              title="Zoom arrière"
+            >
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setZoom(1)}
+              title="Réinitialiser zoom"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={downloadSvg}
+              title="Télécharger dessin SVG"
+            >
+              <Download className="mr-1 h-3.5 w-3.5" />
+              SVG
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* SVG Canvas Container with interactive zoom */}
-      <div className="flex max-h-[420px] sm:max-h-[560px] w-full items-center justify-center overflow-auto rounded-lg bg-slate-50/50 p-1 sm:p-2 dark:bg-slate-900/30">
+      <div
+        className={
+          printMode
+            ? "w-full flex items-center justify-center p-0"
+            : "flex max-h-[420px] sm:max-h-[560px] w-full items-center justify-center overflow-auto rounded-lg bg-slate-50/50 p-1 sm:p-2 dark:bg-slate-900/30"
+        }
+      >
         <div
           style={{
-            transform: `scale(${zoom})`,
+            transform: printMode ? "scale(1)" : `scale(${zoom})`,
             transformOrigin: "center center",
             transition: "transform 0.15s ease-out",
           }}
@@ -172,8 +188,8 @@ export function SchematicView({
           <svg
             ref={svgRef}
             viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
-            className="max-h-[360px] sm:max-h-[500px] w-full max-w-[580px] drop-shadow-sm select-none"
-            style={{ width: "100%", height: "auto" }}
+            className={printMode ? "max-h-[260px] w-auto select-none" : "max-h-[360px] sm:max-h-[500px] w-full max-w-[580px] drop-shadow-sm select-none"}
+            style={{ width: printMode ? "auto" : "100%", height: "auto" }}
             xmlns="http://www.w3.org/2000/svg"
           >
             <defs>
@@ -1107,19 +1123,21 @@ export function SchematicView({
         </div>
       </div>
 
-      {/* Bottom Info Bar */}
-      <div className="mt-3 flex w-full flex-wrap items-center justify-between gap-2 border-t pt-2 text-[11px] text-muted-foreground">
-        <div className="flex items-center gap-3">
-          <span>
-            Finition: <strong className="text-foreground">{couleurAlu}</strong>
-          </span>
-          <span>•</span>
-          <span>
-            Vitrage: <strong className="text-foreground">{vitrageType}</strong>
-          </span>
+      {/* Bottom Info Bar (Hidden on printMode) */}
+      {!printMode && (
+        <div className="mt-3 flex w-full flex-wrap items-center justify-between gap-2 border-t pt-2 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-3">
+            <span>
+              Finition: <strong className="text-foreground">{couleurAlu}</strong>
+            </span>
+            <span>•</span>
+            <span>
+              Vitrage: <strong className="text-foreground">{vitrageType}</strong>
+            </span>
+          </div>
+          <div className="text-right italic">Dessin architectural côté à l'échelle (en cm)</div>
         </div>
-        <div className="text-right italic">Dessin architectural côté à l'échelle (en cm)</div>
-      </div>
+      )}
     </div>
   );
 }

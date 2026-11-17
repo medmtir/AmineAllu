@@ -236,43 +236,63 @@ export function DocumentEditor({ kind, id }: Props) {
       const cleanNum = (doc.numero || "document").replace(/[^a-zA-Z0-9-_]/g, "_");
       const filename = `${prefix}_${cleanNum}.pdf`;
 
-      // Helper to convert any modern color (oklab, lab, oklch, color-mix) to safe rgb/hex
+      // Helper to convert any modern color (oklab, lab, oklch, color-mix) to safe rgb/hex via canvas pixel reading
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = 1;
       tempCanvas.height = 1;
-      const ctx = tempCanvas.getContext("2d");
+      const ctx = tempCanvas.getContext("2d", { willReadFrequently: true });
 
-      const toSafeRgb = (color: string): string => {
-        if (!color || typeof color !== "string") return color;
-        if (!color.includes("lab") && !color.includes("color-mix") && !color.includes("lch")) return color;
-        try {
-          if (ctx) {
-            ctx.fillStyle = "#ffffff";
-            ctx.fillStyle = color;
-            return ctx.fillStyle;
-          }
-        } catch {
-          // fallback
+      const toSafeRgb = (colorVal: string): string => {
+        if (!colorVal || typeof colorVal !== "string") return colorVal;
+        if (
+          !colorVal.includes("oklab") &&
+          !colorVal.includes("oklch") &&
+          !colorVal.includes("lab") &&
+          !colorVal.includes("lch") &&
+          !colorVal.includes("color-mix") &&
+          !colorVal.includes("color(")
+        ) {
+          return colorVal;
         }
-        return "#000000";
+        // Replace every function call (oklab, oklch, lab, lch, color-mix, color) with safe rgb/rgba
+        return colorVal.replace(
+          /(?:oklab|oklch|lab|lch|color-mix|color)\([^)]+\)/gi,
+          (match) => {
+            try {
+              if (ctx) {
+                ctx.clearRect(0, 0, 1, 1);
+                ctx.fillStyle = "#ffffff";
+                ctx.fillStyle = match;
+                ctx.fillRect(0, 0, 1, 1);
+                const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+                if (a === 255) return `rgb(${r}, ${g}, ${b})`;
+                return `rgba(${r}, ${g}, ${b}, ${(a / 255).toFixed(3)})`;
+              }
+            } catch {
+              // fallback
+            }
+            return "#0284c7";
+          }
+        );
       };
 
-      // Wrap getComputedStyle while html2canvas runs so it never crashes on oklab/lab
+      // Wrap getComputedStyle on main window while html2canvas runs so it never returns oklab/lab
       origGetComputedStyle = window.getComputedStyle;
       window.getComputedStyle = function (elt: Element, pseudo?: string | null) {
         const style = origGetComputedStyle!.call(window, elt, pseudo);
         return new Proxy(style, {
           get(target: any, prop: string | symbol) {
-            const orig = typeof target[prop] === "function" ? target[prop].bind(target) : target[prop];
-            if (typeof prop === "string") {
-              if (prop === "getPropertyValue") {
-                return function (propName: string) {
-                  return toSafeRgb(target.getPropertyValue(propName));
-                };
-              }
-              if (prop === "color" || prop.toLowerCase().includes("color")) {
-                return toSafeRgb(orig);
-              }
+            if (prop === "getPropertyValue") {
+              return function (propName: string) {
+                return toSafeRgb(target.getPropertyValue(propName));
+              };
+            }
+            const orig = target[prop as any];
+            if (typeof orig === "string") {
+              return toSafeRgb(orig);
+            }
+            if (typeof orig === "function") {
+              return orig.bind(target);
             }
             return orig;
           },
@@ -317,23 +337,76 @@ export function DocumentEditor({ kind, id }: Props) {
           backgroundColor: "#ffffff",
           windowWidth: 1024,
           onclone: (clonedDoc: Document) => {
+            // 1. Monkey-patch getComputedStyle inside the iframe's contentWindow
+            const win = clonedDoc.defaultView || window;
+            if (win) {
+              const origCS = win.getComputedStyle.bind(win);
+              win.getComputedStyle = function (elt: Element, pseudo?: string | null) {
+                const style = origCS(elt, pseudo);
+                return new Proxy(style, {
+                  get(target: any, prop: string | symbol) {
+                    if (prop === "getPropertyValue") {
+                      return function (propName: string) {
+                        return toSafeRgb(target.getPropertyValue(propName));
+                      };
+                    }
+                    const orig = target[prop as any];
+                    if (typeof orig === "string") {
+                      return toSafeRgb(orig);
+                    }
+                    if (typeof orig === "function") {
+                      return orig.bind(target);
+                    }
+                    return orig;
+                  },
+                });
+              };
+            }
+
+            // 2. Ensure body & root have explicit safe hex background
+            if (clonedDoc.documentElement) {
+              clonedDoc.documentElement.style.backgroundColor = "#ffffff";
+              clonedDoc.documentElement.style.color = "#000000";
+            }
+            if (clonedDoc.body) {
+              clonedDoc.body.style.backgroundColor = "#ffffff";
+              clonedDoc.body.style.color = "#000000";
+            }
+
+            // 3. Sanitize all <style> blocks in the cloned iframe document
+            clonedDoc.querySelectorAll("style").forEach((styleEl) => {
+              if (
+                styleEl.textContent &&
+                (styleEl.textContent.includes("oklab") ||
+                  styleEl.textContent.includes("oklch") ||
+                  styleEl.textContent.includes("color-mix"))
+              ) {
+                styleEl.textContent = toSafeRgb(styleEl.textContent);
+              }
+            });
+
+            // 4. Sanitize all inline styles on all elements
             const all = clonedDoc.querySelectorAll("*");
             all.forEach((el: any) => {
-              if (!el.style) return;
-              const props = [
-                "color",
-                "backgroundColor",
-                "borderColor",
-                "borderTopColor",
-                "borderRightColor",
-                "borderBottomColor",
-                "borderLeftColor",
-                "outlineColor",
-              ];
-              props.forEach((p) => {
-                const val = el.style[p];
-                if (val && typeof val === "string" && (val.includes("lab") || val.includes("color-mix"))) {
-                  el.style[p] = toSafeRgb(val);
+              if (el.style) {
+                for (let i = 0; i < el.style.length; i++) {
+                  const p = el.style[i];
+                  const val = el.style.getPropertyValue(p);
+                  if (
+                    val &&
+                    (val.includes("oklab") ||
+                      val.includes("oklch") ||
+                      val.includes("lab") ||
+                      val.includes("color-mix"))
+                  ) {
+                    el.style.setProperty(p, toSafeRgb(val));
+                  }
+                }
+              }
+              ["fill", "stroke", "color"].forEach((attr) => {
+                const val = el.getAttribute?.(attr);
+                if (val && (val.includes("oklab") || val.includes("oklch") || val.includes("lab"))) {
+                  el.setAttribute(attr, toSafeRgb(val));
                 }
               });
             });

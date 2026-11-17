@@ -66,6 +66,28 @@ export interface OptimizedProfileGroup {
   barres: BarCutOptimization[];
 }
 
+export interface WorkshopCostRates {
+  prixKgAluminium: number; // Prix d'achat du kg d'aluminium TPR (ex: 22.0 DT)
+  prixM2VitrageSimple: number; // Prix m² verre simple 6mm (ex: 42.0 DT)
+  prixM2VitrageDouble: number; // Prix m² double vitrage 4/12/4 (ex: 85.0 DT)
+  prixM2VitrageStopSol: number; // Prix m² verre stop-sol (ex: 65.0 DT)
+  prixM2Alucobond: number; // Prix m² Alucobond 4mm (ex: 55.0 DT)
+  prixM2ToileMoustiquaire: number; // Prix m² toile moustiquaire (ex: 28.0 DT)
+  mainDoeuvreM2: number; // Façonnage et main d'œuvre atelier par m² (ex: 35.0 DT)
+  margeBeneficiairePct: number; // Marge commerciale en % (ex: 35%)
+}
+
+export const DEFAULT_WORKSHOP_RATES: WorkshopCostRates = {
+  prixKgAluminium: 22.0,
+  prixM2VitrageSimple: 42.0,
+  prixM2VitrageDouble: 85.0,
+  prixM2VitrageStopSol: 65.0,
+  prixM2Alucobond: 55.0,
+  prixM2ToileMoustiquaire: 28.0,
+  mainDoeuvreM2: 35.0,
+  margeBeneficiairePct: 35.0,
+};
+
 export interface OuvrageCalculationResult {
   category: OuvrageCategory;
   subType: string;
@@ -93,8 +115,14 @@ export interface OuvrageCalculationResult {
   // Financial & material estimations
   poidsEstimeKg: number;
   surfaceTotaleM2: number;
+  coutAluDt: number;
+  coutVitrageDt: number;
+  coutAccessoiresDt: number;
+  coutMainDoeuvreDt: number;
   prixRevientEstimeDt: number;
+  tauxMargePct: number;
   prixVenteSuggereDt: number;
+  beneficeEstimeDt: number;
 }
 
 export interface AtelierProjetItem {

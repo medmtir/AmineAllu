@@ -143,11 +143,12 @@
   }
 
   /* Make ONLY the printable document container and its contents visible */
-  #printable-a4-doc, #printable-a4-doc * {
+  #printable-a4-doc, #printable-a4-doc *,
+  #workshop-printable-doc, #workshop-printable-doc * {
     visibility: visible !important;
   }
 
-  #printable-a4-doc {
+  #printable-a4-doc, #workshop-printable-doc {
     position: absolute !important;
     left: 0 !important;
     top: 0 !important;

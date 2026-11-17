@@ -6,6 +6,8 @@ import {
   AccessoireItem,
   OptimizedProfileGroup,
   BarCutOptimization,
+  WorkshopCostRates,
+  DEFAULT_WORKSHOP_RATES,
 } from "./types";
 
 // Standard aluminium bar length in Tunisia (TPR): 6000 mm
@@ -133,6 +135,8 @@ export function calculateOuvrage(params: {
   couleurAlu?: string;
   vitrageType?: string;
   options?: Record<string, any>;
+  rates?: Partial<WorkshopCostRates>;
+  customAccessoirePrices?: Record<string, number>;
 }): OuvrageCalculationResult {
   const L = Math.max(100, Math.round(params.largeurMm));
   const H = Math.max(100, Math.round(params.hauteurMm));
@@ -944,23 +948,53 @@ export function calculateOuvrage(params: {
     ([profilRef, items]) => optimizeBarsForProfile(profilRef, items)
   );
 
+  // 1. Apply custom accessory prices if provided
+  if (params.customAccessoirePrices) {
+    accessoires.forEach((a) => {
+      if (params.customAccessoirePrices && params.customAccessoirePrices[a.id] !== undefined) {
+        a.prixEstime = Number(params.customAccessoirePrices[a.id]);
+      }
+    });
+  }
+
+  const rates: WorkshopCostRates = {
+    ...DEFAULT_WORKSHOP_RATES,
+    ...(params.rates || {}),
+  };
+
   // Estimates
   const totalMeters = pieces.reduce((s, p) => s + (p.longueurMm * p.quantite) / 1000, 0);
   const totalVitrageM2 = vitrages.reduce((s, v) => s + v.surfaceM2, 0);
-  const totalAccCost = accessoires.reduce((s, a) => s + (a.prixEstime || 0) * a.quantite, 0);
+  const totalAccCost = Number(
+    accessoires.reduce((s, a) => s + (a.prixEstime || 0) * a.quantite, 0).toFixed(1)
+  );
 
-  // Approximate weight: 1.2 kg per meter of alu profile
+  // Approximate weight: 1.25 kg per meter of alu profile
   const poidsEstimeKg = Number((totalMeters * 1.25).toFixed(1));
   const surfaceTotaleM2 = Number(((L * H) / 1_000_000).toFixed(2)) * Qty;
 
-  // Approximate prices (Tunisian market average):
-  // Aluminium: ~22 DT / kg finished profile
-  // Vitrage simple/double: ~45 - 85 DT / m²
-  const aluCost = poidsEstimeKg * 22;
-  const glassCost = totalVitrageM2 * (vitrageType.includes("Double") ? 85 : 45);
-  const mainDoeuvre = surfaceTotaleM2 * 45; // ~45 DT / m² fabrication + pose
-  const prixRevientEstimeDt = Math.round(aluCost + glassCost + totalAccCost + mainDoeuvre);
-  const prixVenteSuggereDt = Math.round(prixRevientEstimeDt * 1.35); // 35% margin
+  // Exact customized costing according to workshop rates
+  const coutAluDt = Number((poidsEstimeKg * rates.prixKgAluminium).toFixed(1));
+
+  let prixM2Vitrage = rates.prixM2VitrageSimple;
+  const vLower = vitrageType.toLowerCase();
+  if (vLower.includes("double")) {
+    prixM2Vitrage = rates.prixM2VitrageDouble;
+  } else if (vLower.includes("stop-sol")) {
+    prixM2Vitrage = rates.prixM2VitrageStopSol;
+  } else if (vLower.includes("alucobond")) {
+    prixM2Vitrage = rates.prixM2Alucobond;
+  } else if (vLower.includes("toile") || vLower.includes("moustiquaire")) {
+    prixM2Vitrage = rates.prixM2ToileMoustiquaire;
+  }
+
+  const coutVitrageDt = Number((totalVitrageM2 * prixM2Vitrage).toFixed(1));
+  const coutMainDoeuvreDt = Number((surfaceTotaleM2 * rates.mainDoeuvreM2).toFixed(1));
+
+  const prixRevientEstimeDt = Math.round(coutAluDt + coutVitrageDt + totalAccCost + coutMainDoeuvreDt);
+  const margePct = rates.margeBeneficiairePct || 35;
+  const prixVenteSuggereDt = Math.round(prixRevientEstimeDt * (1 + margePct / 100));
+  const beneficeEstimeDt = Math.max(0, prixVenteSuggereDt - prixRevientEstimeDt);
 
   return {
     category: params.category,
@@ -979,7 +1013,13 @@ export function calculateOuvrage(params: {
     optimisationBarres,
     poidsEstimeKg,
     surfaceTotaleM2,
+    coutAluDt,
+    coutVitrageDt,
+    coutAccessoiresDt: totalAccCost,
+    coutMainDoeuvreDt,
+    tauxMargePct: margePct,
     prixRevientEstimeDt,
     prixVenteSuggereDt,
+    beneficeEstimeDt,
   };
 }
