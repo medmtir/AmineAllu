@@ -75,18 +75,19 @@ function ServicesPage() {
         <h1 className="mt-2 max-w-3xl font-display text-5xl font-bold tracking-tight">Nos services en aluminium</h1>
         <p className="mt-4 max-w-2xl text-muted-foreground">De la conception à la pose, nous gérons l'intégralité de votre projet avec précision et élégance.</p>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((s, i) => (
-            <Card key={s.id || i} className="group overflow-hidden border-border/60 p-0 shadow-card transition-all hover:shadow-elegant">
-              <div className="aspect-[4/3] overflow-hidden bg-muted">
+            <Card key={s.id || i} className="card-3d group overflow-hidden border-border/60 p-0 shadow-card hover:shadow-elegant bg-card">
+              <div className="aspect-[4/3] overflow-hidden bg-muted relative">
                 <img
                   src={s.image_url || s.img}
                   alt={s.alt || `${s.title} aluminium`}
                   loading="lazy"
                   width={1024}
                   height={768}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-108"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
               </div>
               <div className="p-6">
                 <h2 className="font-display text-lg font-semibold">{s.title}</h2>
@@ -96,10 +97,10 @@ function ServicesPage() {
           ))}
         </div>
 
-        <div className="mt-16 rounded-xl bg-muted p-10 text-center">
-          <h2 className="font-display text-2xl font-bold">Un projet en tête ?</h2>
-          <p className="mt-2 text-muted-foreground">Contactez-nous pour un devis personnalisé et gratuit sous 24h.</p>
-          <Button asChild className="mt-6"><Link to="/contact">Demander un devis</Link></Button>
+        <div className="mt-16 rounded-2xl bg-gradient-steel p-10 text-center text-steel-foreground shadow-elegant">
+          <h2 className="font-display text-3xl font-bold">Un projet en tête ?</h2>
+          <p className="mx-auto mt-2 max-w-xl text-white/80">Discutons de vos mesures, de vos envies et recevez un chiffrage précis sous 24h.</p>
+          <Button asChild size="lg" className="mt-6 btn-3d bg-white text-primary hover:bg-white/95 font-semibold"><Link to="/contact">Demander un devis gratuit</Link></Button>
         </div>
       </section>
       <SiteFooter />

@@ -173,45 +173,47 @@ export function CuttingOptimizerView({ groups }: CuttingOptimizerViewProps) {
                   </div>
                 </div>
 
-                {/* Visual Bar Graphical Strip */}
-                <div className="relative flex h-11 w-full overflow-hidden rounded-md border border-slate-300 bg-slate-200 shadow-inner dark:border-slate-700 dark:bg-slate-800">
-                  {bar.pieces.map((p, pIdx) => {
-                    const widthPct = (p.lengthMm / bar.barLengthMm) * 100;
-                    return (
-                      <div
-                        key={p.pieceId || pIdx}
-                        style={{
-                          width: `${widthPct}%`,
-                          backgroundColor: p.color,
-                        }}
-                        className="group relative flex h-full items-center justify-center border-r-2 border-white/80 px-1 text-white shadow-sm transition-transform hover:z-10 hover:brightness-110 dark:border-slate-900"
-                        title={`${p.label} - ${(p.lengthMm / 10).toFixed(1)} cm`}
-                      >
-                        <div className="truncate text-center font-mono text-[11px] font-bold leading-tight drop-shadow-sm">
-                          {(p.lengthMm / 10).toFixed(1)} cm
-                          <span className="hidden sm:inline font-sans font-normal text-[9px] opacity-90 block">
-                            {p.label.split("(")[0]}
-                          </span>
+                {/* Visual Bar Graphical Strip with mobile horizontal scroll safety */}
+                <div className="overflow-x-auto no-scrollbar pb-1">
+                  <div className="relative flex h-11 w-full min-w-[420px] sm:min-w-0 overflow-hidden rounded-md border border-slate-300 bg-slate-200 shadow-inner dark:border-slate-700 dark:bg-slate-800">
+                    {bar.pieces.map((p, pIdx) => {
+                      const widthPct = (p.lengthMm / bar.barLengthMm) * 100;
+                      return (
+                        <div
+                          key={p.pieceId || pIdx}
+                          style={{
+                            width: `${widthPct}%`,
+                            backgroundColor: p.color,
+                          }}
+                          className="group relative flex h-full items-center justify-center border-r-2 border-white/80 px-1 text-white shadow-sm transition-transform hover:z-10 hover:brightness-110 dark:border-slate-900"
+                          title={`${p.label} - ${(p.lengthMm / 10).toFixed(1)} cm`}
+                        >
+                          <div className="truncate text-center font-mono text-[11px] font-bold leading-tight drop-shadow-sm">
+                            {(p.lengthMm / 10).toFixed(1)} cm
+                            <span className="hidden sm:inline font-sans font-normal text-[9px] opacity-90 block">
+                              {p.label.split("(")[0]}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
 
-                  {/* Leftover Scrap / Chute */}
-                  {bar.chuteMm > 0 && (
-                    <div
-                      style={{
-                        width: `${(bar.chuteMm / bar.barLengthMm) * 100}%`,
-                        backgroundImage: `repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 8px, #e2e8f0 8px, #e2e8f0 16px)`,
-                      }}
-                      className="flex h-full items-center justify-center border-l border-slate-300 px-1 text-slate-700 font-mono text-[10px] font-bold dark:border-slate-600 dark:text-slate-800"
-                      title={`Chute non utilisée: ${(bar.chuteMm / 10).toFixed(1)} cm`}
-                    >
-                      <span className="truncate bg-white/80 px-1 rounded shadow-xs">
-                        Chute {(bar.chuteMm / 10).toFixed(1)} cm
-                      </span>
-                    </div>
-                  )}
+                    {/* Leftover Scrap / Chute */}
+                    {bar.chuteMm > 0 && (
+                      <div
+                        style={{
+                          width: `${(bar.chuteMm / bar.barLengthMm) * 100}%`,
+                          backgroundImage: `repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 8px, #e2e8f0 8px, #e2e8f0 16px)`,
+                        }}
+                        className="flex h-full items-center justify-center border-l border-slate-300 px-1 text-slate-700 font-mono text-[10px] font-bold dark:border-slate-600 dark:text-slate-800"
+                        title={`Chute non utilisée: ${(bar.chuteMm / 10).toFixed(1)} cm`}
+                      >
+                        <span className="truncate bg-white/80 px-1 rounded shadow-xs">
+                          Chute {(bar.chuteMm / 10).toFixed(1)} cm
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Pieces breakdown list under bar */}

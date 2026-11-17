@@ -50,18 +50,19 @@ function RealisationsPage() {
         <h1 className="mt-2 font-display text-5xl font-bold tracking-tight">Nos derniers projets</h1>
         <p className="mt-4 max-w-2xl text-muted-foreground">Un aperçu de notre savoir-faire en menuiserie aluminium.</p>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((it, i) => (
-            <Card key={it.id ?? i} className="group overflow-hidden border-border/60 p-0 shadow-card transition-all hover:shadow-elegant">
-              <div className="aspect-[4/3] overflow-hidden bg-muted">
+            <Card key={it.id ?? i} className="card-3d group overflow-hidden border-border/60 p-0 shadow-card hover:shadow-elegant bg-card">
+              <div className="aspect-[4/3] overflow-hidden bg-muted relative">
                 <img
                   src={it.image_url}
                   alt={`${it.titre || "Réalisation"} aluminium — ALU MED AMINE`}
                   loading="lazy"
                   width={1024}
                   height={768}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-108"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
               </div>
               <div className="p-6">
                 {it.categorie && (

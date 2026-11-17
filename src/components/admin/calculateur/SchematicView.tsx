@@ -160,20 +160,20 @@ export function SchematicView({
       </div>
 
       {/* SVG Canvas Container with interactive zoom */}
-      <div className="flex max-h-[560px] w-full items-center justify-center overflow-auto rounded-lg bg-slate-50/50 p-2 dark:bg-slate-900/30">
+      <div className="flex max-h-[420px] sm:max-h-[560px] w-full items-center justify-center overflow-auto rounded-lg bg-slate-50/50 p-1 sm:p-2 dark:bg-slate-900/30">
         <div
           style={{
             transform: `scale(${zoom})`,
             transformOrigin: "center center",
             transition: "transform 0.15s ease-out",
           }}
-          className="flex items-center justify-center"
+          className="flex w-full items-center justify-center"
         >
           <svg
             ref={svgRef}
             viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
-            className="max-h-[500px] w-auto drop-shadow-sm select-none"
-            style={{ width: `${Math.min(700, Math.max(300, (L / Math.max(L, H)) * 600))}px` }}
+            className="max-h-[360px] sm:max-h-[500px] w-full max-w-[580px] drop-shadow-sm select-none"
+            style={{ width: "100%", height: "auto" }}
             xmlns="http://www.w3.org/2000/svg"
           >
             <defs>
@@ -708,10 +708,11 @@ export function SchematicView({
                         y="31"
                         textAnchor="middle"
                         fill="#ffffff"
-                        fontSize="11"
+                        fontSize="10"
                         fontWeight="bold"
+                        letterSpacing="1"
                       >
-                        {subType.includes("moteur") ? "⚡ MOTEUR" : "⚙ MANUEL"}
+                        {subType.includes("moteur") ? "MOTEUR ELECTRIQUE" : "MANUEL A SANGLE"}
                       </text>
 
                       {/* Side Guide Channels (Coulisses) */}

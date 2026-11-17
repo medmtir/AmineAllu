@@ -46,6 +46,16 @@ import {
   Package,
   Check,
   FolderOpen,
+  Columns2,
+  DoorOpen,
+  Blinds,
+  ChefHat,
+  ShieldCheck,
+  Maximize2,
+  Ruler,
+  BarChart3,
+  PackageCheck,
+  FolderKanban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase as supabaseTyped } from "@/integrations/supabase/client";
@@ -65,16 +75,16 @@ export const Route = createFileRoute("/admin/calculateur")({
 const CATEGORIES: Array<{
   id: OuvrageCategory;
   name: string;
-  icon: string;
+  icon: any;
   desc: string;
   defaultSub: string;
 }> = [
-  { id: "coulissant", name: "Coulissant", icon: "🪟", desc: "Série 67 / 40 (2V, 3V, 4V)", defaultSub: "coulissant_2v" },
-  { id: "battant", name: "Battant", icon: "🚪", desc: "Série 45 / 52 (1V, 2V, Soufflet, Porte)", defaultSub: "battant_1v" },
-  { id: "volet_roulant", name: "Volet Roulant", icon: "🔄", desc: "Monobloc & Tunnel (Moteur / Manuel)", defaultSub: "monobloc_moteur" },
-  { id: "cuisine", name: "Cuisine Alu", icon: "🍳", desc: "Caissons, Tiroirs, Profils Gola", defaultSub: "meuble_bas" },
-  { id: "moustiquaire", name: "Moustiquaire", icon: "🦟", desc: "Enroulable, Plissée, Coulissante", defaultSub: "enroulable_verticale" },
-  { id: "fixe", name: "Châssis Fixe", icon: "🖼️", desc: "Fixe vitré avec parcloses 45°", defaultSub: "chassis_fixe" },
+  { id: "coulissant", name: "Coulissant", icon: Columns2, desc: "Série 67 / 40 (2V, 3V, 4V)", defaultSub: "coulissant_2v" },
+  { id: "battant", name: "Battant", icon: DoorOpen, desc: "Série 45 / 52 (1V, 2V, Porte)", defaultSub: "battant_1v" },
+  { id: "volet_roulant", name: "Volet Roulant", icon: Blinds, desc: "Monobloc & Tunnel (Moteur/Manuel)", defaultSub: "monobloc_moteur" },
+  { id: "cuisine", name: "Cuisine Alu", icon: ChefHat, desc: "Caissons, Tiroirs, Profils Gola", defaultSub: "meuble_bas" },
+  { id: "moustiquaire", name: "Moustiquaire", icon: ShieldCheck, desc: "Enroulable, Plissée, Coulissante", defaultSub: "enroulable_verticale" },
+  { id: "fixe", name: "Châssis Fixe", icon: Maximize2, desc: "Fixe vitré avec parcloses 45°", defaultSub: "chassis_fixe" },
 ];
 
 const SUBTYPES_BY_CAT: Record<OuvrageCategory, Array<{ id: string; label: string }>> = {
@@ -407,9 +417,9 @@ export function CalculateurPage() {
         </div>
 
         {/* Project Meta Inputs & Quick Actions */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full sm:w-auto">
           {/* Project Title Input */}
-          <div className="w-48 sm:w-56">
+          <div className="w-full sm:w-52">
             <Input
               value={projetTitre}
               onChange={(e) => setProjetTitre(e.target.value)}
@@ -419,7 +429,7 @@ export function CalculateurPage() {
           </div>
 
           {/* Client Selector */}
-          <div className="w-44 sm:w-52">
+          <div className="w-full sm:w-48">
             <Select
               value={selectedClientId}
               onValueChange={(val) => {
@@ -442,83 +452,92 @@ export function CalculateurPage() {
             </Select>
           </div>
 
-          {/* Load Project Dialog */}
-          <Dialog open={openLoadDialog} onOpenChange={setOpenLoadDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 text-xs">
-                <FolderOpen className="mr-1.5 h-3.5 w-3.5" /> Mes Projets ({savedProjects.length})
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="text-base font-bold">Projets Sauvegardés</DialogTitle>
-              </DialogHeader>
-              <div className="max-h-72 space-y-2 overflow-y-auto py-2">
-                {savedProjects.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4">
-                    Aucun projet sauvegardé pour le moment.
-                  </p>
-                ) : (
-                  savedProjects.map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => handleLoadProject(p)}
-                      className="cursor-pointer rounded-lg border p-3 text-xs transition-colors hover:bg-muted/50"
-                    >
-                      <div className="font-bold text-foreground">{p.titreProjet}</div>
-                      <div className="text-muted-foreground">
-                        Client : {p.clientNom || "Non spécifié"} • {p.articles?.length || 0} article(s)
+          {/* Quick Actions Grid on Mobile */}
+          <div className="grid grid-cols-3 sm:flex items-center gap-1.5 w-full sm:w-auto">
+            {/* Load Project Dialog */}
+            <Dialog open={openLoadDialog} onOpenChange={setOpenLoadDialog}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9 text-xs px-2 truncate">
+                  <FolderOpen className="mr-1 h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Projets ({savedProjects.length})</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-base font-bold">Projets Sauvegardés</DialogTitle>
+                </DialogHeader>
+                <div className="max-h-72 space-y-2 overflow-y-auto py-2">
+                  {savedProjects.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      Aucun projet sauvegardé pour le moment.
+                    </p>
+                  ) : (
+                    savedProjects.map((p) => (
+                      <div
+                        key={p.id}
+                        onClick={() => handleLoadProject(p)}
+                        className="cursor-pointer rounded-lg border p-3 text-xs transition-colors hover:bg-muted/50"
+                      >
+                        <div className="font-bold text-foreground">{p.titreProjet}</div>
+                        <div className="text-muted-foreground">
+                          Client : {p.clientNom || "Non spécifié"} • {p.articles?.length || 0} article(s)
+                        </div>
+                        <div className="mt-1 text-[10px] text-muted-foreground/80">
+                          {new Date(p.dateCreation).toLocaleDateString("fr-FR")}
+                        </div>
                       </div>
-                      <div className="mt-1 text-[10px] text-muted-foreground/80">
-                        {new Date(p.dateCreation).toLocaleDateString("fr-FR")}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+                    ))
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
 
-          {/* Save Project Button */}
-          <Button variant="outline" size="sm" onClick={handleSaveProject} className="h-9 text-xs">
-            <Save className="mr-1.5 h-3.5 w-3.5" /> Sauvegarder
-          </Button>
+            {/* Save Project Button */}
+            <Button variant="outline" size="sm" onClick={handleSaveProject} className="h-9 text-xs px-2">
+              <Save className="mr-1 h-3.5 w-3.5 shrink-0" /> Sauvegarder
+            </Button>
 
-          {/* 1-Click Convert to Devis */}
-          <Button
-            size="sm"
-            onClick={handleExportToDevis}
-            className="h-9 bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold"
-          >
-            <FilePlus className="mr-1.5 h-3.5 w-3.5" /> Créer Devis
-          </Button>
+            {/* 1-Click Convert to Devis */}
+            <Button
+              size="sm"
+              onClick={handleExportToDevis}
+              className="h-9 bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-semibold px-2 btn-3d"
+            >
+              <FilePlus className="mr-1 h-3.5 w-3.5 shrink-0" /> Devis
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Category Selection Cards */}
+      {/* Category Selection Cards (No Emojis - Sleek Lucide Icons & 3D feel) */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {CATEGORIES.map((cat) => {
           const isSelected = category === cat.id;
+          const CatIcon = cat.icon;
           return (
             <button
               key={cat.id}
               onClick={() => handleCategoryChange(cat.id)}
-              className={`flex flex-col items-start rounded-xl border p-3 text-left transition-all ${
+              className={`card-3d flex flex-col items-start rounded-xl border p-2.5 sm:p-3 text-left transition-all ${
                 isSelected
-                  ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20"
-                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900"
+                  ? "border-primary bg-primary/10 shadow-sm ring-2 ring-primary/30"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900"
               }`}
             >
               <div className="flex items-center justify-between w-full">
-                <span className="text-2xl">{cat.icon}</span>
+                <div className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg transition-colors ${
+                  isSelected ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                }`}>
+                  <CatIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                </div>
                 {isSelected && (
-                  <span className="h-2 w-2 rounded-full bg-primary" />
+                  <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 )}
               </div>
-              <div className="mt-2 font-display text-sm font-bold text-foreground">
+              <div className="mt-2 font-display text-xs sm:text-sm font-bold text-foreground">
                 {cat.name}
               </div>
-              <div className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">
+              <div className="mt-0.5 line-clamp-1 text-[10px] sm:text-[11px] text-muted-foreground">
                 {cat.desc}
               </div>
             </button>
@@ -709,19 +728,19 @@ export function CalculateurPage() {
               </div>
 
               {/* Buttons: Add to project & Print */}
-              <div className="flex items-center gap-2 pt-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-2">
                 <Button
                   onClick={handleAddToProject}
-                  className="flex-1 bg-primary text-white hover:bg-primary/90 text-xs font-semibold"
+                  className="flex-1 bg-primary text-white hover:bg-primary/90 text-xs font-semibold h-9 sm:h-10 btn-3d"
                 >
-                  <Plus className="mr-1.5 h-3.5 w-3.5" /> Ajouter au Projet
+                  <Plus className="mr-1.5 h-4 w-4" /> Ajouter au Projet
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setIsPrintSheetOpen(true)}
-                  className="text-xs"
+                  className="text-xs h-9 sm:h-10"
                 >
-                  <Printer className="mr-1.5 h-3.5 w-3.5" /> Fiche Atelier
+                  <Printer className="mr-1.5 h-4 w-4" /> Fiche Atelier
                 </Button>
               </div>
             </CardContent>
@@ -733,21 +752,26 @@ export function CalculateurPage() {
         {/* ================================================================ */}
         <div className="space-y-4 lg:col-span-7">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 text-xs">
-              <TabsTrigger value="schema" className="text-xs">
-                📐 Schéma
+            <TabsList className="flex w-full overflow-x-auto no-scrollbar gap-1 p-1 bg-muted/60 justify-start sm:grid sm:grid-cols-5 rounded-lg border">
+              <TabsTrigger value="schema" className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs flex items-center gap-1.5 font-medium">
+                <Ruler className="h-3.5 w-3.5" />
+                <span>Schéma</span>
               </TabsTrigger>
-              <TabsTrigger value="debitage" className="text-xs">
-                ✂️ Débitage ({currentResult.pieces.length})
+              <TabsTrigger value="debitage" className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs flex items-center gap-1.5 font-medium">
+                <Scissors className="h-3.5 w-3.5" />
+                <span>Débitage ({currentResult.pieces.length})</span>
               </TabsTrigger>
-              <TabsTrigger value="optimisation" className="text-xs">
-                📊 Barres 6m
+              <TabsTrigger value="optimisation" className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs flex items-center gap-1.5 font-medium">
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span>Barres 6m</span>
               </TabsTrigger>
-              <TabsTrigger value="vitrages" className="text-xs">
-                🔩 Accessoires
+              <TabsTrigger value="vitrages" className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs flex items-center gap-1.5 font-medium">
+                <PackageCheck className="h-3.5 w-3.5" />
+                <span>Accessoires</span>
               </TabsTrigger>
-              <TabsTrigger value="project_items" className="text-xs">
-                📋 Projet ({projectItems.length})
+              <TabsTrigger value="project_items" className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs flex items-center gap-1.5 font-medium">
+                <FolderKanban className="h-3.5 w-3.5" />
+                <span>Projet ({projectItems.length})</span>
               </TabsTrigger>
             </TabsList>
 
