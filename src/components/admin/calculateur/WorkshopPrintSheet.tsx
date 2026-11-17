@@ -94,7 +94,7 @@ export function WorkshopPrintSheet({
               <br />
               <span className="font-bold text-slate-700">Dimensions :</span>{" "}
               <span className="font-bold text-blue-700">
-                L: {result.largeurMm} mm × H: {result.hauteurMm} mm
+                L: {(result.largeurMm / 10).toFixed(1)} cm × H: {(result.hauteurMm / 10).toFixed(1)} cm
               </span>{" "}
               (Quantité : <strong>{result.quantiteOuvrage}</strong>)
               <br />
@@ -128,7 +128,7 @@ export function WorkshopPrintSheet({
         {/* Section 2: Tableau de Débitage des Profilés */}
         <div className="mt-5">
           <h2 className="mb-2 text-xs font-black uppercase tracking-wider text-slate-900 flex items-center justify-between">
-            <span>2. Fiche de Débitage Profilés Aluminium (Coupes Millimétriques)</span>
+            <span>2. Fiche de Débitage Profilés Aluminium (Coupes en cm)</span>
             <span className="text-[11px] font-normal text-slate-600">
               {result.pieces.length} repères de coupe
             </span>
@@ -140,7 +140,7 @@ export function WorkshopPrintSheet({
                 <th className="py-1.5 px-2">Rep.</th>
                 <th className="py-1.5 px-2">Désignation</th>
                 <th className="py-1.5 px-2">Réf. Profil</th>
-                <th className="py-1.5 px-2 text-right">Longueur (mm)</th>
+                <th className="py-1.5 px-2 text-right">Longueur (cm)</th>
                 <th className="py-1.5 px-2 text-center">Qté</th>
                 <th className="py-1.5 px-2 text-center">Coupe G</th>
                 <th className="py-1.5 px-2 text-center">Coupe D</th>
@@ -156,8 +156,13 @@ export function WorkshopPrintSheet({
                   <td className="py-1.5 px-2 font-mono font-bold text-slate-700">P{idx + 1}</td>
                   <td className="py-1.5 px-2 font-semibold text-slate-900">{p.designation}</td>
                   <td className="py-1.5 px-2 font-mono text-[11px] text-slate-700">{p.profilRef}</td>
-                  <td className="py-1.5 px-2 text-right font-mono font-black text-sm text-blue-700">
-                    {p.longueurMm} mm
+                  <td className="py-1.5 px-2 text-right">
+                    <span className="font-mono font-black text-sm text-blue-700">
+                      {(p.longueurMm / 10).toFixed(1)} cm
+                    </span>
+                    <span className="text-[10px] text-slate-500 block font-normal leading-none">
+                      ({p.longueurMm} mm)
+                    </span>
                   </td>
                   <td className="py-1.5 px-2 text-center font-bold text-slate-900">{p.quantite}</td>
                   <td className="py-1.5 px-2 text-center font-mono font-bold text-slate-800">
@@ -184,7 +189,7 @@ export function WorkshopPrintSheet({
               <thead>
                 <tr className="border-b-2 border-slate-900 bg-slate-200 text-[11px] font-bold text-slate-900">
                   <th className="py-1 px-2">Type</th>
-                  <th className="py-1 px-2 text-right">L × H (mm)</th>
+                  <th className="py-1 px-2 text-right">L × H (cm)</th>
                   <th className="py-1 px-2 text-center">Qté</th>
                   <th className="py-1 px-2 text-right">Surface</th>
                 </tr>
@@ -194,7 +199,7 @@ export function WorkshopPrintSheet({
                   <tr key={i} className="border-b border-slate-200">
                     <td className="py-1.5 px-2 font-semibold text-slate-900">{v.type}</td>
                     <td className="py-1.5 px-2 text-right font-mono font-bold text-slate-800">
-                      {v.largeurMm} × {v.hauteurMm}
+                      {(v.largeurMm / 10).toFixed(1)} × {(v.hauteurMm / 10).toFixed(1)} cm
                     </td>
                     <td className="py-1.5 px-2 text-center font-bold text-slate-900">{v.quantite}</td>
                     <td className="py-1.5 px-2 text-right font-mono text-slate-700">{v.surfaceM2} m²</td>
@@ -233,17 +238,17 @@ export function WorkshopPrintSheet({
         {/* Section 4: Récapitulatif Barres 6m à sortir du stock */}
         <div className="mt-5 rounded border border-slate-300 bg-slate-50 p-3">
           <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
-            5. Récapitulatif des Barres de 6.00m à Sortir du Stock
+            5. Récapitulatif des Barres de 6,00 m (600 cm) à Sortir du Stock
           </h2>
           <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
             {result.optimisationBarres.map((g) => (
               <div key={g.profilName} className="rounded border bg-white p-2">
                 <div className="font-bold text-slate-900">{g.profilName}</div>
                 <div className="mt-1 font-mono text-sm font-black text-blue-700">
-                  {g.totalBarres6m} barre(s) 6m
+                  {g.totalBarres6m} barre(s) de 600 cm
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  Perte / Chute : {g.chuteMoyennePct}% ({(g.totalChuteMm / 1000).toFixed(2)} m)
+                  Perte / Chute : {g.chuteMoyennePct}% ({(g.totalChuteMm / 10).toFixed(1)} cm)
                 </div>
               </div>
             ))}

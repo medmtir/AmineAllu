@@ -76,9 +76,9 @@ export function CuttingOptimizerView({ groups }: CuttingOptimizerViewProps) {
               Longueur Utilisée
             </div>
             <div className="mt-1 font-mono text-2xl font-bold text-primary">
-              {(totalLengthMm / 1000).toFixed(1)} <span className="text-xs font-normal text-muted-foreground">m</span>
+              {(totalLengthMm / 10).toFixed(0)} <span className="text-xs font-normal text-muted-foreground">cm</span>
             </div>
-            <div className="text-[10px] text-muted-foreground">{totalLengthMm.toLocaleString()} mm débités</div>
+            <div className="text-[10px] text-muted-foreground">{(totalLengthMm / 1000).toFixed(2)} m débités</div>
           </CardContent>
         </Card>
 
@@ -88,9 +88,9 @@ export function CuttingOptimizerView({ groups }: CuttingOptimizerViewProps) {
               Chutes Totales
             </div>
             <div className="mt-1 font-mono text-2xl font-bold text-amber-600">
-              {(totalChuteMm / 1000).toFixed(1)} <span className="text-xs font-normal text-muted-foreground">m</span>
+              {(totalChuteMm / 10).toFixed(0)} <span className="text-xs font-normal text-muted-foreground">cm</span>
             </div>
-            <div className="text-[10px] text-muted-foreground">{totalChuteMm.toLocaleString()} mm restant</div>
+            <div className="text-[10px] text-muted-foreground">{(totalChuteMm / 1000).toFixed(2)} m restant</div>
           </CardContent>
         </Card>
 
@@ -136,7 +136,7 @@ export function CuttingOptimizerView({ groups }: CuttingOptimizerViewProps) {
               Plan de Débitage : {currentGroup.profilName}
             </h4>
             <p className="text-xs text-muted-foreground">
-              {currentGroup.totalBarres6m} barre(s) de 6 000 mm • Trait de scie : 4 mm • Taux de perte : {currentGroup.chuteMoyennePct}%
+              {currentGroup.totalBarres6m} barre(s) de 600 cm (6,00 m) • Trait de scie : 4 mm • Taux de perte : {currentGroup.chuteMoyennePct}%
             </p>
           </div>
           <div>{getEfficiencyBadge(currentGroup.chuteMoyennePct)}</div>
@@ -158,17 +158,17 @@ export function CuttingOptimizerView({ groups }: CuttingOptimizerViewProps) {
                       Barre #{bar.barIndex} / {currentGroup.totalBarres6m}
                     </span>
                     <span className="font-medium text-foreground">
-                      Longueur : 6 000 mm
+                      Longueur : 600 cm (6.00 m)
                     </span>
                   </div>
 
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <span>
-                      Débité : <strong className="font-mono text-foreground">{bar.usedMm} mm</strong> ({usefulPct}%)
+                      Débité : <strong className="font-mono text-foreground">{(bar.usedMm / 10).toFixed(1)} cm</strong> ({usefulPct}%)
                     </span>
                     <span>•</span>
                     <span>
-                      Chute : <strong className="font-mono text-amber-600">{bar.chuteMm} mm</strong> ({bar.tauxChutePct}%)
+                      Chute : <strong className="font-mono text-amber-600">{(bar.chuteMm / 10).toFixed(1)} cm</strong> ({bar.tauxChutePct}%)
                     </span>
                   </div>
                 </div>
@@ -185,10 +185,10 @@ export function CuttingOptimizerView({ groups }: CuttingOptimizerViewProps) {
                           backgroundColor: p.color,
                         }}
                         className="group relative flex h-full items-center justify-center border-r-2 border-white/80 px-1 text-white shadow-sm transition-transform hover:z-10 hover:brightness-110 dark:border-slate-900"
-                        title={`${p.label} - ${p.lengthMm} mm`}
+                        title={`${p.label} - ${(p.lengthMm / 10).toFixed(1)} cm`}
                       >
                         <div className="truncate text-center font-mono text-[11px] font-bold leading-tight drop-shadow-sm">
-                          {p.lengthMm}
+                          {(p.lengthMm / 10).toFixed(1)} cm
                           <span className="hidden sm:inline font-sans font-normal text-[9px] opacity-90 block">
                             {p.label.split("(")[0]}
                           </span>
@@ -205,10 +205,10 @@ export function CuttingOptimizerView({ groups }: CuttingOptimizerViewProps) {
                         backgroundImage: `repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 8px, #e2e8f0 8px, #e2e8f0 16px)`,
                       }}
                       className="flex h-full items-center justify-center border-l border-slate-300 px-1 text-slate-700 font-mono text-[10px] font-bold dark:border-slate-600 dark:text-slate-800"
-                      title={`Chute non utilisée: ${bar.chuteMm} mm`}
+                      title={`Chute non utilisée: ${(bar.chuteMm / 10).toFixed(1)} cm`}
                     >
                       <span className="truncate bg-white/80 px-1 rounded shadow-xs">
-                        Chute {bar.chuteMm}mm
+                        Chute {(bar.chuteMm / 10).toFixed(1)} cm
                       </span>
                     </div>
                   )}
@@ -226,7 +226,9 @@ export function CuttingOptimizerView({ groups }: CuttingOptimizerViewProps) {
                         className="inline-block h-2 w-2 rounded-full"
                         style={{ backgroundColor: p.color }}
                       />
-                      <span className="font-medium text-foreground">{p.label}</span>
+                      <span className="font-medium text-foreground">
+                        {p.label} — <strong className="font-mono text-primary">{(p.lengthMm / 10).toFixed(1)} cm</strong>
+                      </span>
                     </div>
                   ))}
                 </div>

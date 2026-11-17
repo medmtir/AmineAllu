@@ -79,7 +79,7 @@ export function SchematicView({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `schema-${category}-${L}x${H}mm.svg`;
+    link.download = `schema-${category}-${(L / 10).toFixed(0)}x${(H / 10).toFixed(0)}cm.svg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -90,6 +90,11 @@ export function SchematicView({
   const frameThick = 45;
   const sashThick = 52;
 
+  const formatCm = (mm: number) => {
+    const cm = mm / 10;
+    return Number.isInteger(cm) ? `${cm}` : cm.toFixed(1);
+  };
+
   return (
     <div className="relative flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950">
       {/* Top Toolbar */}
@@ -97,8 +102,8 @@ export function SchematicView({
         <div className="flex items-center gap-1.5 font-medium text-foreground">
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-primary" />
           <span>{titre}</span>
-          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-            {L} × {H} mm
+          <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-bold text-foreground">
+            {formatCm(L)} × {formatCm(H)} cm
           </span>
         </div>
 
@@ -238,7 +243,7 @@ export function SchematicView({
                 <line x1={L} y1="-10" x2={L} y2="-65" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 4" />
                 <rect x={L / 2 - 60} y="-65" width="120" height="26" fill="#ffffff" rx="4" stroke="#0284c7" strokeWidth="1" />
                 <text x={L / 2} y="-47" textAnchor="middle" fill="#0284c7" fontSize="16" fontWeight="bold">
-                  L = {L} mm
+                  L = {formatCm(L)} cm
                 </text>
 
                 {/* Vertical Left Height Cotation */}
@@ -248,7 +253,7 @@ export function SchematicView({
                 <g transform={`rotate(-90, -55, ${H / 2})`}>
                   <rect x={-55 - 60} y={H / 2 - 13} width="120" height="26" fill="#ffffff" rx="4" stroke="#0284c7" strokeWidth="1" />
                   <text x={-55} y={H / 2 + 5} textAnchor="middle" fill="#0284c7" fontSize="16" fontWeight="bold">
-                    H = {H} mm
+                    H = {formatCm(H)} cm
                   </text>
                 </g>
               </g>
@@ -365,7 +370,7 @@ export function SchematicView({
                             fontSize="12"
                             fontWeight="600"
                           >
-                            V{idx + 1}: {vWidth}mm
+                            V{idx + 1}: {formatCm(vWidth)} cm
                           </text>
                         )}
                       </g>
@@ -824,7 +829,7 @@ export function SchematicView({
                             fontSize="11"
                             fontWeight="bold"
                           >
-                            Plan de Travail (P = {profondeurMm}mm)
+                            Plan de Travail (P = {formatCm(profondeurMm)} cm)
                           </text>
                         </g>
                       )}
@@ -1112,7 +1117,7 @@ export function SchematicView({
             Vitrage: <strong className="text-foreground">{vitrageType}</strong>
           </span>
         </div>
-        <div className="text-right italic">Dessin architectural côté à l'échelle (1mm = 1 unit)</div>
+        <div className="text-right italic">Dessin architectural côté à l'échelle (en cm)</div>
       </div>
     </div>
   );

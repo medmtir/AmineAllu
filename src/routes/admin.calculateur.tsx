@@ -131,12 +131,12 @@ const VITRAGES_BY_CAT: Record<OuvrageCategory, string[]> = {
 export function CalculateurPage() {
   const navigate = useNavigate();
 
-  // Active calculation configuration
+  // Active calculation configuration (in Centimètres cm)
   const [category, setCategory] = useState<OuvrageCategory>("coulissant");
   const [subType, setSubType] = useState<string>("coulissant_2v");
-  const [largeurMm, setLargeurMm] = useState<number>(1200);
-  const [hauteurMm, setHauteurMm] = useState<number>(1400);
-  const [profondeurMm, setProfondeurMm] = useState<number>(600);
+  const [largeurCm, setLargeurCm] = useState<number>(120);
+  const [hauteurCm, setHauteurCm] = useState<number>(140);
+  const [profondeurCm, setProfondeurCm] = useState<number>(60);
   const [quantite, setQuantite] = useState<number>(1);
   const [serie, setSerie] = useState<string>("Série 67 TPR");
   const [couleurAlu, setCouleurAlu] = useState<string>("Blanc 9010");
@@ -189,49 +189,49 @@ export function CalculateurPage() {
     if (defaultVitrages && defaultVitrages[0]) {
       setVitrageType(defaultVitrages[0]);
     }
-    // Adjust default dimensions by category
+    // Adjust default dimensions by category (in cm)
     if (cat === "coulissant") {
-      setLargeurMm(1400);
-      setHauteurMm(1200);
+      setLargeurCm(140);
+      setHauteurCm(120);
       setSerie("Série 67 TPR");
     } else if (cat === "battant") {
-      setLargeurMm(1000);
-      setHauteurMm(1200);
+      setLargeurCm(100);
+      setHauteurCm(120);
       setSerie("Série 45 TPR");
     } else if (cat === "volet_roulant") {
-      setLargeurMm(1200);
-      setHauteurMm(1400);
+      setLargeurCm(120);
+      setHauteurCm(140);
       setSerie("Monobloc Coffre 180");
     } else if (cat === "cuisine") {
-      setLargeurMm(800);
-      setHauteurMm(850);
-      setProfondeurMm(600);
+      setLargeurCm(80);
+      setHauteurCm(85);
+      setProfondeurCm(60);
       setSerie("Profils Cuisine & Gola");
     } else if (cat === "moustiquaire") {
-      setLargeurMm(1200);
-      setHauteurMm(1200);
+      setLargeurCm(120);
+      setHauteurCm(120);
       setSerie("Enroulable Alu 42mm");
     } else if (cat === "fixe") {
-      setLargeurMm(1600);
-      setHauteurMm(1000);
+      setLargeurCm(160);
+      setHauteurCm(100);
       setSerie("Série 45 Fixe");
     }
   };
 
-  // Live calculation result
+  // Live calculation result (converts cm to mm for exact fabrication engine)
   const currentResult: OuvrageCalculationResult = useMemo(() => {
     return calculateOuvrage({
       category,
       subType,
-      largeurMm,
-      hauteurMm,
-      profondeurMm,
+      largeurMm: Math.round(largeurCm * 10),
+      hauteurMm: Math.round(hauteurCm * 10),
+      profondeurMm: Math.round(profondeurCm * 10),
       quantite,
       serie,
       couleurAlu,
       vitrageType,
     });
-  }, [category, subType, largeurMm, hauteurMm, profondeurMm, quantite, serie, couleurAlu, vitrageType]);
+  }, [category, subType, largeurCm, hauteurCm, profondeurCm, quantite, serie, couleurAlu, vitrageType]);
 
   // Add current calculation as an item in the project
   const handleAddToProject = () => {
@@ -242,9 +242,9 @@ export function CalculateurPage() {
       params: {
         category,
         subType,
-        largeurMm,
-        hauteurMm,
-        profondeurMm,
+        largeurMm: Math.round(largeurCm * 10),
+        hauteurMm: Math.round(hauteurCm * 10),
+        profondeurMm: Math.round(profondeurCm * 10),
         quantite,
         serie,
         couleurAlu,
@@ -281,9 +281,9 @@ export function CalculateurPage() {
           params: {
             category,
             subType,
-            largeurMm,
-            hauteurMm,
-            profondeurMm,
+            largeurMm: Math.round(largeurCm * 10),
+            hauteurMm: Math.round(hauteurCm * 10),
+            profondeurMm: Math.round(profondeurCm * 10),
             quantite,
             serie,
             couleurAlu,
@@ -314,9 +314,9 @@ export function CalculateurPage() {
       const first = proj.articles[0];
       setCategory(first.params.category);
       setSubType(first.params.subType);
-      setLargeurMm(first.params.largeurMm);
-      setHauteurMm(first.params.hauteurMm);
-      if (first.params.profondeurMm) setProfondeurMm(first.params.profondeurMm);
+      setLargeurCm(first.params.largeurMm / 10);
+      setHauteurCm(first.params.hauteurMm / 10);
+      if (first.params.profondeurMm) setProfondeurCm(first.params.profondeurMm / 10);
       setQuantite(first.params.quantite);
       setSerie(first.params.serie);
       setCouleurAlu(first.params.couleurAlu);
@@ -338,8 +338,8 @@ export function CalculateurPage() {
         params: {
           category,
           subType,
-          largeurMm,
-          hauteurMm,
+          largeurMm: Math.round(largeurCm * 10),
+          hauteurMm: Math.round(hauteurCm * 10),
           quantite,
           serie,
           couleurAlu,
@@ -351,7 +351,7 @@ export function CalculateurPage() {
 
     const devisItems = itemsToExport.map((item, idx) => {
       const r = item.result;
-      const desc = `${item.emplacement ? `[${item.emplacement}] ` : ""}${r.titre} (L: ${r.largeurMm}mm × H: ${r.hauteurMm}mm) — ${r.serie}, Teinte: ${r.couleurAlu}, Vitrage: ${r.vitrageType}`;
+      const desc = `${item.emplacement ? `[${item.emplacement}] ` : ""}${r.titre} (L: ${(r.largeurMm / 10).toFixed(1)} cm × H: ${(r.hauteurMm / 10).toFixed(1)} cm) — ${r.serie}, Teinte: ${r.couleurAlu}, Vitrage: ${r.vitrageType}`;
       return {
         designation: desc,
         quantite: r.quantiteOuvrage,
@@ -556,37 +556,37 @@ export function CalculateurPage() {
                 </Select>
               </div>
 
-              {/* Dimensions: Largeur & Hauteur */}
+              {/* Dimensions: Largeur & Hauteur en cm */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Largeur (L en mm)</Label>
+                  <Label className="text-xs font-semibold">Largeur (L en cm)</Label>
                   <Input
                     type="number"
-                    min="300"
-                    max="6000"
-                    step="5"
-                    value={largeurMm}
-                    onChange={(e) => setLargeurMm(Math.max(100, Number(e.target.value) || 0))}
+                    min="20"
+                    max="600"
+                    step="0.5"
+                    value={largeurCm}
+                    onChange={(e) => setLargeurCm(Math.max(10, Number(e.target.value) || 0))}
                     className="font-mono text-sm font-bold"
                   />
                   <span className="text-[10px] text-muted-foreground">
-                    Ex: 1200 mm = 1.20 m
+                    Ex: 120 cm ({(largeurCm * 10).toFixed(0)} mm)
                   </span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Hauteur (H en mm)</Label>
+                  <Label className="text-xs font-semibold">Hauteur (H en cm)</Label>
                   <Input
                     type="number"
-                    min="300"
-                    max="4000"
-                    step="5"
-                    value={hauteurMm}
-                    onChange={(e) => setHauteurMm(Math.max(100, Number(e.target.value) || 0))}
+                    min="20"
+                    max="400"
+                    step="0.5"
+                    value={hauteurCm}
+                    onChange={(e) => setHauteurCm(Math.max(10, Number(e.target.value) || 0))}
                     className="font-mono text-sm font-bold"
                   />
                   <span className="text-[10px] text-muted-foreground">
-                    Ex: 1400 mm = 1.40 m
+                    Ex: 140 cm ({(hauteurCm * 10).toFixed(0)} mm)
                   </span>
                 </div>
               </div>
@@ -594,16 +594,19 @@ export function CalculateurPage() {
               {/* Profondeur (if cuisine) */}
               {category === "cuisine" && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Profondeur Caisson (P en mm)</Label>
+                  <Label className="text-xs font-semibold">Profondeur Caisson (P en cm)</Label>
                   <Input
                     type="number"
-                    min="200"
-                    max="1000"
-                    step="10"
-                    value={profondeurMm}
-                    onChange={(e) => setProfondeurMm(Number(e.target.value) || 600)}
-                    className="font-mono text-sm"
+                    min="20"
+                    max="100"
+                    step="1"
+                    value={profondeurCm}
+                    onChange={(e) => setProfondeurCm(Number(e.target.value) || 60)}
+                    className="font-mono text-sm font-bold"
                   />
+                  <span className="text-[10px] text-muted-foreground">
+                    Standard : 60 cm ({(profondeurCm * 10).toFixed(0)} mm)
+                  </span>
                 </div>
               )}
 
@@ -785,7 +788,7 @@ export function CalculateurPage() {
                         <tr>
                           <th className="py-2 px-3">Désignation</th>
                           <th className="py-2 px-3">Réf. Profil</th>
-                          <th className="py-2 px-3 text-right">Longueur</th>
+                          <th className="py-2 px-3 text-right">Longueur (cm)</th>
                           <th className="py-2 px-3 text-center">Qté</th>
                           <th className="py-2 px-3 text-center">Coupe G</th>
                           <th className="py-2 px-3 text-center">Coupe D</th>
@@ -801,8 +804,13 @@ export function CalculateurPage() {
                             <td className="py-2.5 px-3 font-mono text-[11px] text-muted-foreground">
                               {p.profilRef}
                             </td>
-                            <td className="py-2.5 px-3 text-right font-mono font-bold text-primary">
-                              {p.longueurMm} mm
+                            <td className="py-2.5 px-3 text-right">
+                              <span className="font-mono font-bold text-primary text-sm">
+                                {(p.longueurMm / 10).toFixed(1)} cm
+                              </span>
+                              <span className="text-[10px] text-muted-foreground block leading-none">
+                                ({p.longueurMm} mm)
+                              </span>
                             </td>
                             <td className="py-2.5 px-3 text-center font-bold text-foreground">
                               {p.quantite}
@@ -848,7 +856,7 @@ export function CalculateurPage() {
                     <thead className="border-b bg-muted/40 font-semibold text-muted-foreground">
                       <tr>
                         <th className="py-2 px-3">Type Vitrage / Panneau</th>
-                        <th className="py-2 px-3 text-right">L × H (mm)</th>
+                        <th className="py-2 px-3 text-right">L × H (cm)</th>
                         <th className="py-2 px-3 text-center">Qté</th>
                         <th className="py-2 px-3 text-right">Surface (m²)</th>
                       </tr>
@@ -857,8 +865,13 @@ export function CalculateurPage() {
                       {currentResult.vitrages.map((v, i) => (
                         <tr key={i} className="hover:bg-muted/30">
                           <td className="py-2 px-3 font-semibold text-foreground">{v.type}</td>
-                          <td className="py-2 px-3 text-right font-mono font-bold text-foreground">
-                            {v.largeurMm} × {v.hauteurMm} mm
+                          <td className="py-2 px-3 text-right">
+                            <span className="font-mono font-bold text-foreground">
+                              {(v.largeurMm / 10).toFixed(1)} × {(v.hauteurMm / 10).toFixed(1)} cm
+                            </span>
+                            <span className="text-[10px] text-muted-foreground block leading-none">
+                              ({v.largeurMm} × {v.hauteurMm} mm)
+                            </span>
                           </td>
                           <td className="py-2 px-3 text-center font-bold text-foreground">
                             {v.quantite}
@@ -959,7 +972,7 @@ export function CalculateurPage() {
                               )}
                             </div>
                             <div className="text-muted-foreground">
-                              Dimensions : {item.result.largeurMm} × {item.result.hauteurMm} mm (Qté : {item.result.quantiteOuvrage}) • {item.result.serie} • {item.result.couleurAlu}
+                              Dimensions : {(item.result.largeurMm / 10).toFixed(1)} × {(item.result.hauteurMm / 10).toFixed(1)} cm (Qté : {item.result.quantiteOuvrage}) • {item.result.serie} • {item.result.couleurAlu}
                             </div>
                           </div>
 
