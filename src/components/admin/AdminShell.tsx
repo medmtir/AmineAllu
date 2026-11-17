@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { LayoutDashboard, Users, FileText, Receipt, Inbox, LogOut, Home, Image, Menu, Wrench } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Receipt, Inbox, LogOut, Home, Image, Menu, Wrench, Calculator } from "lucide-react";
 import { COMPANY } from "@/lib/format";
 import { Logo } from "@/components/Logo";
 
@@ -28,6 +28,7 @@ export function AdminShell() {
 
   const nav = [
     { to: "/admin", label: "Tableau de bord", icon: LayoutDashboard, exact: true },
+    { to: "/admin/calculateur", label: "Calculateur & Atelier", icon: Calculator },
     { to: "/admin/clients", label: "Clients", icon: Users },
     { to: "/admin/devis", label: "Devis", icon: FileText },
     { to: "/admin/factures", label: "Factures", icon: Receipt },

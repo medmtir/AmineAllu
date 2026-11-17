@@ -17,6 +17,7 @@ import { Route as RealisationsRouteImport } from './routes/realisations'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminCalculateurRouteImport } from './routes/admin.calculateur'
 import { Route as AdminClientsRouteImport } from './routes/admin.clients'
 import { Route as AdminDemandesRouteImport } from './routes/admin.demandes'
 import { Route as AdminDevisRouteImport } from './routes/admin.devis'
@@ -64,6 +65,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCalculateurRoute = AdminCalculateurRouteImport.update({
+  id: '/calculateur',
+  path: '/calculateur',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminClientsRoute = AdminClientsRouteImport.update({
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/realisations': typeof RealisationsRoute
   '/services': typeof ServicesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/calculateur': typeof AdminCalculateurRoute
   '/admin/clients': typeof AdminClientsRoute
   '/admin/demandes': typeof AdminDemandesRoute
   '/admin/devis': typeof AdminDevisRouteWithChildren
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/realisations': typeof RealisationsRoute
   '/services': typeof ServicesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/calculateur': typeof AdminCalculateurRoute
   '/admin/clients': typeof AdminClientsRoute
   '/admin/demandes': typeof AdminDemandesRoute
   '/admin/devis': typeof AdminDevisRouteWithChildren
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/realisations': typeof RealisationsRoute
   '/services': typeof ServicesRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/calculateur': typeof AdminCalculateurRoute
   '/admin/clients': typeof AdminClientsRoute
   '/admin/demandes': typeof AdminDemandesRoute
   '/admin/devis': typeof AdminDevisRouteWithChildren
@@ -171,6 +180,7 @@ export interface FileRouteTypes {
     | '/realisations'
     | '/services'
     | '/sitemap.xml'
+    | '/admin/calculateur'
     | '/admin/clients'
     | '/admin/demandes'
     | '/admin/devis'
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/realisations'
     | '/services'
     | '/sitemap.xml'
+    | '/admin/calculateur'
     | '/admin/clients'
     | '/admin/demandes'
     | '/admin/devis'
@@ -206,6 +217,7 @@ export interface FileRouteTypes {
     | '/realisations'
     | '/services'
     | '/sitemap.xml'
+    | '/admin/calculateur'
     | '/admin/clients'
     | '/admin/demandes'
     | '/admin/devis'
@@ -283,6 +295,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/calculateur': {
+      id: '/admin/calculateur'
+      path: '/calculateur'
+      fullPath: '/admin/calculateur'
+      preLoaderRoute: typeof AdminCalculateurRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/clients': {
@@ -369,6 +388,7 @@ const AdminFacturesRouteWithChildren = AdminFacturesRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminCalculateurRoute: typeof AdminCalculateurRoute
   AdminClientsRoute: typeof AdminClientsRoute
   AdminDemandesRoute: typeof AdminDemandesRoute
   AdminDevisRoute: typeof AdminDevisRouteWithChildren
@@ -379,6 +399,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCalculateurRoute: AdminCalculateurRoute,
   AdminClientsRoute: AdminClientsRoute,
   AdminDemandesRoute: AdminDemandesRoute,
   AdminDevisRoute: AdminDevisRouteWithChildren,

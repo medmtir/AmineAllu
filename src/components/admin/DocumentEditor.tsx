@@ -69,6 +69,25 @@ export function DocumentEditor({ kind, id }: Props) {
       .then(({ data }: any) => setClients(data || []));
 
     if (isNew) {
+      // Check if arriving from workshop calculator
+      try {
+        const pending = sessionStorage.getItem("pending_devis_from_calc");
+        if (pending) {
+          const parsed = JSON.parse(pending);
+          sessionStorage.removeItem("pending_devis_from_calc");
+          if (parsed.client_id) {
+            setDoc((d: any) => ({ ...d, client_id: parsed.client_id, notes: parsed.notes || d.notes }));
+          } else if (parsed.notes) {
+            setDoc((d: any) => ({ ...d, notes: parsed.notes }));
+          }
+          if (parsed.items && parsed.items.length > 0) {
+            setItems(parsed.items);
+          }
+        }
+      } catch (e) {
+        console.error("Error reading pending devis from calc", e);
+      }
+
       const prefix = kind === "devis" ? "DEV" : "FAC";
       const y = new Date().getFullYear();
       supabase
